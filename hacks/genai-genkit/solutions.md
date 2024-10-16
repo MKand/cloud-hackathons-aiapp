@@ -122,7 +122,7 @@ func GetIndexerFlow(maxRetLength int, movieDB *db.MovieDB, embedder ai.Embedder)
    defer cancel()
 
    _, err = movieDB.DB.ExecContext(dbCtx, query,
-    pgv.NewVector(embedding.Embeddings[0].Embedding), doc.Title, doc.RuntimeMinutes, genres, doc.Rating, doc.Released, actors, doc.Director, doc.Plot, doc.Poster, doc.Tconst, content)
+    pgv.NewVector(embedding.Embeddings[0].Embedding), doc.Title, doc.RuntimeMinutes, doc.genres, doc.Rating, doc.Released, doc.actors, doc.Director, doc.Plot, doc.Poster, doc.Tconst, content)
    if err != nil {
     return nil, err
    }
