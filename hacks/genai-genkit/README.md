@@ -1369,7 +1369,7 @@ You can do this with *GoLang* or *TypeScript*. Refer to the specific sections on
 
 - [Genkit PGVector Go](https://firebase.google.com/docs/genkit-go/pgvector)
 - [Genkit Retriever examples PGVector Go](https://github.com/firebase/genkit/blob/main/go/samples/pgvector/main.go)
-- [Genkit PGVector JS](https://firebase.google.com/docs/genkit/pgvector)
+- [Genkit PGVector JS](https://firebase.google.com/docs/genkit/templates/pgvector)
 
 ## Challenge 5: The full RAG flow
 
