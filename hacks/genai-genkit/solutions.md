@@ -563,9 +563,9 @@ func DefineRetriever(maxRetLength int, db *sql.DB, embedder ai.Embedder) ai.Retr
     "rating":       rating,
     "runtime_mins": runtime_mins,
     "plot":         plot,
-    "actors":   actors.split(","),
-    "director":  director,
-    "genres":       genres.split(",")
+    "actors":       strings.Split(actors, ", "),
+    "director":     director,
+    "genres":       strings.Split(genres, ", ")
    }
    doc := &ai.Document{
     Content:  []*ai.Part{ai.NewTextPart(content)},
