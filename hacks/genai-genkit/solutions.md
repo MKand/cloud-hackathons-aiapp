@@ -106,7 +106,7 @@ func GetIndexerFlow(maxRetLength int, movieDB *db.MovieDB, embedder ai.Embedder)
  indexerFlow := genkit.DefineFlow("movieDocFlow",
   func(ctx context.Context, doc *types.MovieContext) (*ai.Document, error) {
    time.Sleep(1 / 3 * time.Second) // reduce rate to rate limits on embedding model API
-   content := createText(doc)
+   filteredContent := createText(doc)
    aiDoc := ai.DocumentFromText(content, nil)
    embedding, err := ai.Embed(ctx, embedder, ai.WithEmbedDocs(aiDoc))
    if err != nil {
@@ -123,7 +123,7 @@ func GetIndexerFlow(maxRetLength int, movieDB *db.MovieDB, embedder ai.Embedder)
    genres := strings.Join(doc.Genres, ", ") // converting array to string
    actors := strings.Join(doc.Actors, ", ") // converting array to string
    _, err = movieDB.DB.ExecContext(dbCtx, query,
-    pgv.NewVector(embedding.Embeddings[0].Embedding), doc.Title, doc.RuntimeMinutes, genres, doc.Rating, doc.Released, actors, doc.Director, doc.Plot, doc.Poster, doc.Tconst, content)
+    pgv.NewVector(embedding.Embeddings[0].Embedding), doc.Title, doc.RuntimeMinutes, genres, doc.Rating, doc.Released, actors, doc.Director, doc.Plot, doc.Poster, doc.Tconst, filteredContent)
    if err != nil {
     return nil, err
    }
@@ -434,7 +434,7 @@ Sample code that implements the flow:
 GoLang version:
 
 ```go
-pfunc GetQueryTransformFlow(ctx context.Context, model ai.Model, prompt string) (*genkit.Flow[*QueryTransformFlowInput, *QueryTransformFlowOutput, struct{}], error) {
+func GetQueryTransformFlow(ctx context.Context, model ai.Model, prompt string) (*genkit.Flow[*QueryTransformFlowInput, *QueryTransformFlowOutput, struct{}], error) {
 
  queryTransformPrompt, err := dotprompt.Define("queryTransformFlow",
   prompt,
