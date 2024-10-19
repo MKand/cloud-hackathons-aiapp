@@ -15,11 +15,12 @@ Watch the video below to see what it does and understand the flows you will be b
 
 In this hack you will learn how to:
 
-   1. Vectorise a simple dataset and add it to a vector database (postgres PGVector).
-   1. Create a flow using Genkit that anaylses a user's statement and extract's their long term preferences and dislikes.
-   1. Create a flow using Genkit that summarises the conversation with the user and transform's the user's latest query into one that can be used by a vector database.
-   1. Create a flow using Genkit that takes the transformed query and retrieves relevant documents from the vector database.
-   1. Create a flow using Genkit that takes the retrieved documents, conversation history and the user's latest query and formulates a relevant response to the user.
+   1. Using Genkit to build AI based applications.
+   2. Vectorising simple datasets.
+   3. Creating prompts in Genkit using dotPrompt.
+   4. Debugging using Genkit Developer UI.
+   5. Incorporating Tool Calling in Genkit.
+   6. Incorporating a RAG flow.
 
 ## Challenges
 
@@ -27,9 +28,8 @@ In this hack you will learn how to:
 - Challenge 2: Explore the movie data
 - Challenge 3: Identify vector searchable fields in the Movie db
 - Challenge 4: Reconstruct the embeddings
-- Challenge 5: 
+- Challenge 5: Incorporate keyword searches
 - Challenge 6: The full RAG flow
-  - Select the relevant outputs from the previous stages and return a meaningful output to the user.
 
 ## Prerequisites
 
