@@ -23,8 +23,7 @@ In this hack you will learn how to:
 
 ## Challenges
 
-- Challenge 1: Upload the data to the vector database
-  - Create an embedding for each entry in the dataset (discussed later), and upload the data to a vector database using the predefined schema. Do this using a Genkit flow.
+- Challenge 1: Build a Smart Movie Search System
 - Challenge 2: Your first flow that analyses the user's input
   - Create a flow that takes the user's latest input and make sure you extract *any* long term preference or dislike.
 - Challenge 3: Create vector searchable queries
@@ -47,44 +46,181 @@ In this hack you will learn how to:
 - Manasa Kandula
 - Christiaan Hees
 
-## Challenge 1: Upload the data to the vector database
+## Challenge 1: Set up your working environment
 
 ### Introduction
 
-This is one of the most complex challenges. This should take approximately **45 minutes**.
+We're working with Genkit on Node.js to execute our challenges.
+Our environment consists of:
 
-The goal of this challenge is to insert the movie data, along with the vector embeddings into the database, under the table **movies**. Each movie's data is stored along with a vector representation of its relevant fields in a row. When performing a vector search, the vector representing the search query sent to the db, and the db returns similar vectors. Along with these vectors, we ask postgres to also send the other fields that are interesting to us (such as the movie title, actors, plot etc.).
+1. Our **Flows Server** (that hosts the API endpoints that execute certain flows).
+1. Our **Genkit Developer UI** (a place from which we can test out our Flows with different inputs and debug potential issues).
+1. Our **PG Vector database** (hosts our movies data and vector embeddings).
 
-This challenge includes creating an embedding per movie, and uploading the remainder of the metadata for each movie into each row. A row will look like this.
+This challenge is about setting up the environment for the rest of the challenges.
 
-```text
-Vector; Title; Actors; Director; Plot; Release; Rating; Poster; tconst; Genre; Runtime
+Open your project in the GCP console, and open a **CloudShell Editor**. This should open up a VSCode-like editor. Make it full screen if it isn't already.
+If you developing locally, open up your IDE.
 
-[0.1, 0.3, 0.56, ...]; The Kings Loss; Tom Hanks,Meryl Streep; Steven Spielberg; King Kong loses the tree his lives in and wants to plant a new one; 2001; 3.4; www.posterurl/poster.jpg; 128; Action,Comedy; 110  ...
-```
+Step 1:
 
-You need to perform the following steps:
+- Clone the repo.
 
-1. Open the file **dataset/movies_with_posters.csv** and review it. This file contains the AI Generated movie details used in application.
-1. Select appropriate fields in the raw data for each movie that are useful to use in a vector search. These are factors users would typically use when looking for movies.
-1. Create an embedding per movie based on the fields you selected before.
-1. Upload each movie into the **movies** table. The schema is given below in the **Description** section. You might need to reformat some columns in the raw data to match the DB schema while uploading data to the db.
-1. Structure each entry (embedding and other fields) into the format required by the table.
+    ```sh
+    git clone https://github.com/MKand/movie-guru.git --branch ghack
+    cd movie-guru
+    ```
 
-#### Genkit Flows
+Step 2:
 
-[Flows](https://firebase.google.com/docs/genkit/flows) are like blueprints for specific AI tasks in Genkit. They define a sequence of actions, such as analyzing your words, searching a database, and generating a response. This structured approach helps the AI understand your requests and provide relevant information, similar to how a recipe guides a chef to create a dish. By breaking down complex tasks into smaller steps, flows make the AI more organized and efficient.
+- Open a terminal from the editor (**CloudShell Editor** Hamburgermenu > terminal > new terminal).
+- Check if the basic tools we need are installed. Run the following command.
 
-**Key Differences from LangChain Chains:**
+    ```sh
+    docker compose version
+    ```
 
-While both flows and chains orchestrate AI operations, Genkit flows emphasize:
+- If it prints out a version number (>= 2.29) you are good to go.
 
-- **Modularity:**  Flows are designed to be easily combined and reused like building blocks.
-- **Strong Typing:**  Clear input/output definitions help catch errors and improve code reliability.
-- **Visual Development:**  The Genkit UI provides a visual way to design and manage flows.
-- **Google Cloud Integration:**  Genkit works seamlessly with Google Cloud's AI services.
+Step 3:
 
-If you're familiar with LangChain, think of flows as Genkit's counterpart with a focus on modularity and Google Cloud integration.
+- Go to the project in the GCP console. Go to **IAM > Service Accounts**.
+- Select the service account (movie-guru-chat-server-sa@##########.iam.gserviceaccount.com).
+
+![IAM](images/IAM.png)
+
+- Select **Create a new JSON key**.
+
+![CreateKey](images/createnewkey.png)
+
+- Download the key and store it as **.key.json** in the root of this repo (make sure you use the filename exactly).
+
+> **Note**: In production it is BAD practice to store keys in file. Applications running in GoogleCloud use serviceaccounts attached to the platform to perform authentication. The setup used here is simply for convenience.
+
+Step 4:
+
+- Set project ID as environment variable
+
+    ```sh
+    export PROJECT_ID="<enter project id>"
+    ```
+
+Step 3:
+
+- Create a shared network for all the containers. We will be running containers across different docker compose files so we want to ensure the db is reachable to all of the containers.
+
+     ```sh
+     docker network create db-shared-network
+     ```
+
+- Setup the local postgres database. This will create a pgvector instance, a db (fake-movies-db), 2 tables (movies, user_preferences), 2 users (main, minimal-user).
+- Crucially, it also creates an hnsw index for the embedding column in the movies table. If you want to learn more about why we create an index, check out the learning resources below.
+
+- It also sets up **adminer**, lightweight tool for managing databases.  
+
+     ```sh
+     docker compose -f docker-compose-pgvector.yaml up -d
+     ```
+
+Step 4:
+
+- Connect to the database.
+- Go to <http://locahost:8082> to open the **adminer** interface.
+
+> **Note**: If you are using the GCP **CloudShell Editor**, click on the **webpreview** button and change the port to 8082.
+
+![webpreview](images/webpreview.png)
+
+- Log in to the database using the following details:
+  - Username: main
+  - Password: main
+  - Database: fake-movies-db
+
+    ![Adminer login](images/login_adminer.png)
+
+Step 5:
+
+- Once logged in, you should see a button that says *SQLCommand* on the left hand pane. Click on it.
+- It should open an interface that looks like this:
+  
+  ![Execute SQL command](images/sqlcommand.png)
+
+- Let's view the **movies** table.
+  
+- Paste the following commands there and click **Execute**.
+
+    ```SQL
+    SELECT 
+        title, 
+        actors, 
+        director, 
+        plot, 
+        released
+        rating, 
+        poster, 
+        tconst, 
+        genres, 
+        runtime_mins,
+        embedding
+    FROM 
+    'movies'
+    ```
+
+- You should see a long list of data in the database.
+  - *Title*: The official title of the movie (e.g., "The Agent's Redemption").
+  - *Actors*: A list of the main actors who appear in the movie. It is formatted as a comma-separated string .
+  - Director: Name of the movie's director.
+  - Plot: This summary or description of the movie's plot.
+  - Release: This indicates the year the movie was officially released in theaters.
+  - Rating: This is the movie's average rating from 1-5 given by viewers.
+  - Poster: This contains a URL or file path to an image file of the movie's poster.
+  - tconst: Unique identifier for the movie. It is a primary key used to distinguish this movie from all others.
+  - Genres: A list of genres the movie belongs to (e.g., "Drama", "Crime").
+  - Runtime: This indicates the length of the movie in minutes (e.g., "142").
+  - Embedding: This is a vector embedding of the movie's data (derived from a string made by concatenating all the  text from the above fields.). This field is not meant for humans to understand.
+
+- The embedding field is indexed using an **HNSW** (Hierarchical Navigable Small World). See additional information to understand why we index the embedding column.
+
+- Lets set up the **Genkit Developer UI**.
+
+### Additional Information
+
+#### Indexes in Vector DBs
+
+We create an index on our vector column (**embedding**) to speed up similarity searches. Without an index, the database would have to compare the query vector to every single vector in the table, which is not optimal. An index allows the database to quickly find the most similar vectors by organizing the data in a way that optimizes these comparisons. We chose the **HNSW** (Hierarchical Navigable Small World) index because it offers a good balance of speed and accuracy. Additionally, we use **cosine similarity** as the distance metric to compare the vectors, as it's well-suited for text-based embeddings and focuses on the conceptual similarity of the text.
+
+## Challenge 2: Build a Smart Movie Search Bot
+
+### Introduction
+
+You're working on a chat bot that helps users find movies. Users can search by things like title, genre, plot types (*movies with animals, movies set in medieval times etc*) actors, directors – basically anything they might know about a movie.
+
+Your bot needs to be smart about how it searches. Sometimes users will ask for things in a way that requires your bot to understand the meaning of their request (**semantic search**). Other times, a simple **keyword search** will do the trick.
+
+To do this, your bot will use a database of movie information. Here's the catch: some of the information needs to be stored in a special format called "vector embeddings" to allow for semantic search.  Other information can be stored normally for regular searches.
+
+#### Available Movie Data Fields
+
+Title
+Actors
+Director
+Plot
+Release Date
+Rating
+Poster
+tconst (unique ID)
+Genres
+Runtime
+
+#### Your Task
+
+1. Identify the fields where users are most likely to search for exact matches. Make a list of those fields.
+
+1. Semantic Search Fields: Identify fields where users might search using concepts and meaning, rather than exact keywords. Make a list of those fields.
+
+1. Non-Searchable Fields: Identify any fields that users are unlikely to search by directly. Make a list of those fields.
+
+By carefully categorizing these fields, you'll create a movie search system that's both efficient and capable of understanding a variety of user requests.
 
 ### Pre-requisites
 
