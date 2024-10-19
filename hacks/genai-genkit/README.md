@@ -105,13 +105,15 @@ Step 4:
 - Download the key and store it as **.key.json** in the root of this repo (make sure you use the filename exactly).
 
 > **Note**: In production it is BAD practice to store keys in file. Applications running in GoogleCloud use serviceaccounts attached to the platform to perform authentication. The setup used here is simply for convenience.
-    
+
 - Create a shared network for all the containers. We will be running containers across different docker compose files so we want to ensure the db is reachable to all of the containers.
+
      ```sh
     docker network create db-shared-network
     docker compose -f docker-compose-setup.yaml up -d
      ```
-Step 5: 
+
+Step 5:
 
 Setup Genkit
 
@@ -186,14 +188,15 @@ Genkit Tools UI: http://localhost:4000
 > **WARNING: Potential error message**: At first, the genkit ui might show an error message and have no flows or prompts loaded. This might happen if genkit has yet had the time to detect and load the necessary go files. If that happens, go to **js/flows-js/src/index.ts**, make a small change (add a newline) and save it. This will cause the files to be detected and reloaded.
 
 ### Challenge steps
-Work with your first prompt. 
+
+Work with your first prompt.
 Here, we're going explore the prompt structure, and test out the output of the model for different inputs.
 
 - Let's look at our first **DotPrompt**. In the **Developer UI** navigate to **Prompts/UserProfileFlowPrompt**. You should see something that looks like this:
 
     ![Genkit UI UserProfileFlow Prompt](images/userProfileFlowPrompt.png)
 
-- You have empty inputs to the prompt. 
+- You have empty inputs to the prompt.
 
     ```json
         {
