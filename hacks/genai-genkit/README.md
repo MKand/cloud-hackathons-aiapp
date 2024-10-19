@@ -27,9 +27,8 @@ In this hack you will learn how to:
 - Challenge 2: Explore the movie data
 - Challenge 3: Identify vector searchable fields in the Movie db
 - Challenge 4: Reconstruct the embeddings
-- Challenge 5:
-- 
-- Challenge 5: The full RAG flow
+- Challenge 5: 
+- Challenge 6: The full RAG flow
   - Select the relevant outputs from the previous stages and return a meaningful output to the user.
 
 ## Prerequisites
@@ -68,9 +67,10 @@ Step 1:
 - Clone the repo.
 
     ```sh
-    git clone https://github.com/MKand/movie-guru.git --branch ghack
+    git clone https://github.com/MKand/movie-guru.git --branch ghack-v2
     cd movie-guru
     ```
+
 Step 2:
 
 - Open a terminal from the editor (**CloudShell Editor** Hamburgermenu > terminal > new terminal).
@@ -445,8 +445,7 @@ By carefully categorizing these fields, you'll create a movie search system that
 - Run queries on the fields you selected and see if they all yeild the correct results. For example if you selected the field **rating**, a query "rating higher than 3", should result in no relevant documents. This is because a rating value cannot be searched semantically.
 - Do this for all the fields you selected for semantic search and verify if you are correct.
 
-
-## Challenge 4: Reconstruct the embeddings 
+## Challenge 4: Reconstruct the embeddings
 
 ### Introduction
 
@@ -530,12 +529,12 @@ WIP
 
 ### Introduction
 
+This is a prompt engineering challenge.
 In the previous steps, we got relevant documents based on the user's search query.
 
 Now it is time to take the relevant documents, along with the conversation history, and craft a response to the user. This is the response that the user finally recieves when chatting with the **Movie Guru** chatbot.
 
 The **conversation history** is relevant as the user's intent is often not captured in a single (latest) message. In the example below, the conversation history is crucial to understand the intent from the user's question *"Really? What kind of movies has he been in since then?"*.
-
 
 ```text
 User: I can't believe they cast Robert Pattinson as Batman, he's way too gloomy!
