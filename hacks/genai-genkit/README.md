@@ -19,7 +19,7 @@ In this hack you will learn how to:
    2. Vectorising simple datasets.
    3. Creating prompts in Genkit using dotPrompt.
    4. Debugging using Genkit Developer UI.
-   5. Incorporating Tool Calling in Genkit.
+   5. Using evaluators.
    6. Incorporating a RAG flow.
 
 ## Challenges
@@ -29,7 +29,8 @@ In this hack you will learn how to:
 - Challenge 3: Identify vector searchable fields in the Movie db
 - Challenge 4: Reconstruct the embeddings
 - Challenge 5: Incorporate keyword searches
-- Challenge 6: The full RAG flow
+- Challenge 6: Evaluating the quality of the returned data
+- Challenge 7: The full RAG flow
 
 ## Prerequisites
 
@@ -51,9 +52,10 @@ In this hack you will learn how to:
 ### Introduction
 
 We're working with Genkit on Node.js to execute our challenges.
+
 Our environment consists of:
 
-1. Our **Flows Server** (that hosts the API endpoints that execute certain flows).
+1. Our **Genkit Server** (that hosts the API endpoints that execute certain flows, retrievers etc).
 1. Our **Genkit Developer UI** (a place from which we can test out our Flows with different inputs and debug potential issues).
 1. Our **PG Vector database** (hosts our movies data and vector embeddings).
 
@@ -81,7 +83,6 @@ Step 2:
     ```
 
 - If it prints out a version number (>= 2.29) you are good to go.
-
 
 Step 3:
 
@@ -115,14 +116,13 @@ Step 4:
 
 Step 5:
 
-Setup Genkit
-
-- Lets set up the **Genkit Developer UI**.  From the root of the project directory run the following:
-We are going to exec into the genkit container we created in the **docker-compose-startup.yaml file**. The reason we are not using **genkit start** as a startup command for the container is that it has an interactive step at startup that cannot be bypassed. So, we will exec into the container and then run the command **genkit start**.
+- Lets set up the **Genkit Developer UI**.  From the root of the project directory run the following command.
 
     ```sh
     docker compose -f docker-compose-setup.yaml exec genkit sh
     ```
+
+- We are going to exec into the genkit container we created in the **docker-compose-startup.yaml file**. The reason we are not using **genkit start** as a startup command for the container is that it has an interactive step at startup that cannot be bypassed. So, we will exec into the container and then run the command **genkit start**.
 
 - This should open up a shell inside the container at the location **/app**.
 
@@ -144,7 +144,7 @@ We are going to exec into the genkit container we created in the **docker-compos
     Press "Enter" to continue
     ```
 
-- Then press **ENTER** as instructed (this is the interactive step mentioned earlier).
+- Then press **ENTER** as instructed (this an interactive step that needs to be performed to start the Genkit UI).
 - This should start the genkit server inside the container at port 4000 which we forward to port **4000** to your host machine (in the docker compose file).
 
 > **Note**: Wait till you see an output that looks like this. This basically means that all the Genkit has managed to load the necessary go dependencies, build the go module and load the genkit actions. This might take 30-60 seconds for the first time, and the process might pause output for several seconds before proceeding.
@@ -180,7 +180,8 @@ Genkit Tools UI: http://localhost:4000
 
     ![Genkit UI JS](images/genkit-js.png)
 
-    > **Note**: If you are using the GCP **CloudShell Editor**, click on the  webpreview button and change the port to 4000.
+    > **Note**: If you are using the GCP **CloudShell Editor**, click on the  **webpreview** button and change the port to 4000. The web preview button in Cloud Shell Editor is a handy feature that lets you run and interact with web applications directly within your Cloud Shell environment.
+
     ![webpreview](images/webpreview.png)
 
 - This is the developer interface of Genkit. Using this interface, you can test out the Flows you have created, the prompts you have created, etc.
@@ -189,7 +190,10 @@ Genkit Tools UI: http://localhost:4000
 
 ### Challenge steps
 
-Work with your first prompt.
+Work with your first prompt for the **UserProfileFlow**. 
+
+The **UserProfileFlowPrompt** plays a crucial role in the Movie Guru application by acting as a "silent observer" that analyzes user input to understand their movie preferences. It doesn't directly respond to the user but instead provides valuable insights to personalize the chatbot's recommendations.
+
 Here, we're going explore the prompt structure, and test out the output of the model for different inputs.
 
 - Let's look at our first **DotPrompt**. In the **Developer UI** navigate to **Prompts/UserProfileFlowPrompt**. You should see something that looks like this:
@@ -432,9 +436,11 @@ Runtime
 
 ### Challenge-steps
 
-1. Identify the fields where users are most likely to search for exact matches. Make a list of those fields piece of paper.
+1. Identify the fields where users are most likely to search for exact textual/numeric matches. Make a list of those fields on a piece of paper. 
+  - Write down a few example search queries.
 
 1. Semantic Search Fields: Identify fields where users might search using concepts and meaning, rather than exact keywords. Make a list of those fields.
+  - Write down a few example search queries.
 
 1. Non-Searchable Fields: Identify any fields that users are unlikely to search by directly. Make a list of those fields.
 
@@ -442,11 +448,11 @@ By carefully categorizing these fields, you'll create a movie search system that
 
 ### Success Criteria
 
-- From the **Genkit Developer UI**, go to **Flows/SemanticSearchFlow**. This flow takes a vector query (eg: drama films) and performs a **semantic search** in the vector db. 
+- From the **Genkit Developer UI**, go to **Flows/VectorSearchFlow**. This flow takes a vector query (eg: drama films) and performs a **vector search** in the vector db.
 - Run a query for "films with animals". This should return 10 movie documents from the database. Crucially, all the movies returned should have animals featured. Read through the *plots* to confirm this.
-- Now, look at the list you prepared earlier of semantic search fields. Run queries based on those semantic searches. For example: if one of the fields you selected is **title**, a query "titles with location names" should return relevant films like "Secret of the Bermuda triangle", "Forbidden City of Azarath" etc that all contain location names in the film titles. 
-- Run queries on the fields you selected and see if they all yeild the correct results. For example if you selected the field **rating**, a query "rating higher than 3", should result in no relevant documents. This is because a rating value cannot be searched semantically.
-- Do this for all the fields you selected for semantic search and verify if you are correct.
+- Now, look at the list you prepared earlier of **semantic search fields**. Run queries based on those semantic searches. For example: if one of the fields you selected is **title**, a query "titles with location names" should return relevant films like "Secret of the Bermuda triangle", "Forbidden City of Azarath" etc that all contain location names in the film titles.
+- Run queries on all the other fields you selected (based on exact textual/numeric matches) and see if they all yeild the correct results. For example if you selected the field **rating**, a query *"rating higher than 3"*, should result in no relevant documents (you will see documents, but not all ratings will be > 3). This is because a rating value cannot be searched semantically.
+- Do this for all the fields you selected for **semantic search** and verify if you are correct.
 
 ## Challenge 4: Reconstruct the embeddings
 
@@ -478,7 +484,7 @@ In the previous step, we identified a few fields from the movie's data that are 
   }
   ```
 
-- The step below, then takes the string, and creates an embedding using the model **textEmbedding004**. 
+- The step below, then takes the string, and creates an embedding using the model **textEmbedding004**.
   
   ```ts
         const embedding = await embed({
@@ -526,9 +532,65 @@ In the previous step, we identified a few fields from the movie's data that are 
 
 ## Challenge 5: Keyword based searches
 
+### Introduction
+
+So you've seen that while users search for movie information based on semantic information or textual matches, the  **Movie Guru** app will need to help them find the right information. So far, we only have a solution for semantic queries. But, how do we add functionality that is able to switch between vector searches and text based searches based on what the user said. GenAI LLMs come to the rescue again!
+
+The goal of this challenge is to create a flow that takes a short user query and decides whether a **Keyword based search** or a **Vector based search** is more appropriate for the user's query and then return the rewritten query that will be passed on to either the **KeywordRetriever** (performs a regular SQL query) or the **VectorRetriever** (performs vector based query). You can find these retriever definitions in the **js/flows-js/src/mixedSearchFlow.ts**.
+For example: 
+- When the user says they want to watch "movies that are shorter than 30 mins", it should return:
+
+    ```json
+    {
+      "outputQuery": "runtime_mins < 30",
+      "searchCategory": "KEYWORD",
+    }
+    ```
+
+- When the user says they want to watch a "movies with dogs", it should return:
+  
+    ```json
+    {
+      "outputQuery": "movies with dogs",
+      "searchCategory": "VECTOR",
+    }
+    ```
+
+### Challenge steps
+
+- Navigate to **js/flows-js/src/mixedSearchFlow.ts**. Edit the **MixedSearchFlowPrompt** to the following.
+  - Analyzes the query: Carefully read and understand the user's request in the {{inputQuery}}.
+  - Identify keywords: Check if the query explicitly mentions specific movies, actors, directors, genres, or release years.
+  - Look for comparisons: See if the query uses comparison terms (e.g., "higher than," "before," "longer than") related to ratings, runtime, or release year. If so,         apply the provided transformations.
+  - Semantic analysis: Determine if the query requires understanding the meaning or theme of the movie's title, plot, or genres. This includes concepts, emotions,       analogies, or metaphors.
+  - Classify the search: Based on your analysis, classify the query as either KEYWORD or VECTOR.
+  - Create a **outputQuery** which either contains the SQL subquery (WHERE *XYZ*) for KEYWORD searches or a short query for VECTOR searches.
+  - When you submit an input to the **MixedSearchFlow** you can view the traces of the flow by either going to the **Inspect** tab, or clicking on **View trace**.
+
+    ![View Trace](images/MixedSearchFlow-js.png)
+
+- If it is a semantic search, you should see a trace that incorporates a call to the **text-embedder** and a **vector retriever**.
+
+    ![Semantic Search](images/semanticSearch.png)
+
+- If it is a keyword based search, you should see a trace that incorporates a call to the **keyword retriever**.
+
+    ![Semantic Search](images/keywordSearch.png)
+
+> **Note**: The traces view of the Genkit Developer UI helps you understand the execution flow of your Genkit flows. It visualizes the steps involved, their sequence, and the data exchanged between them. This is crucial for debugging and optimizing your AI applications built with Genkit. 
+
+### Success Criteria
+
+Make the following searches in the MixedSearchFlow
+
+1. A search for "The Decoys Ploy" should result in a single document being returned. Inspecting the trace should reveal that it used the **keywordRetriever**.
+1. A search for "movies with children" should result in 10 documents being returned. Inspecting the trace should reveal that it used the **vectorRetriever**.
+
+## Challenge 6: Evaluating the quality of the returned data
+
 WIP
 
-## Challenge 6: The full RAG flow
+## Challenge 7: The full RAG flow
 
 ### Introduction
 
@@ -793,3 +855,4 @@ You need to perform the following steps:
 
 - [Genkit RAG Go](https://firebase.google.com/docs/genkit-go/rag)
 - [Genkit RAG JS](https://firebase.google.com/docs/genkit/rag)
+The UserProfileFlowPrompt plays a crucial role in the Movie Guru application by acting as a "silent observer" that analyzes user input to understand their movie preferences. It doesn't directly respond to the user but instead provides valuable insights to personalize the chatbot's recommendations.
