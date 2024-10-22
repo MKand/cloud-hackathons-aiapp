@@ -689,7 +689,7 @@ Movie:
 - actors:{{this.actors}} 
 - directors:{{this.directors}} 
 - rating:{{this.rating}} 
-- runtimeMinutes:{{this.runtimeMinutes}}
+- runtimeMinutes:{{this.runtime_minutes}}
 - released:{{this.released}} 
 {{/each}}
 
