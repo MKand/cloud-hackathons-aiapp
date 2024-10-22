@@ -788,7 +788,8 @@ You need to perform the following steps:
     }
     ```
 
-    Should return a model output like that below. Also inspect the traces to see the data being passed along between different steps in the flow. The flow should have skipped the retriever step.
+    - Should return a model output like that below. 
+    - Also inspect the traces to see the data being passed along between different steps in the flow. The flow should have skipped the retriever step.
 
     ```json
     {
@@ -869,3 +870,80 @@ You need to perform the following steps:
 ### Learning Resources
 
 - [Genkit RAG](https://firebase.google.com/docs/genkit/rag)
+
+## Challenge 7: Evaluating the quality of RAG
+
+### Introduction
+
+In the last few challenges, we built a Retrieval-Augmented Generation (RAG) system—a flow that analyzes a user's request, retrieves relevant documents, and generates a response based on the retrieved information. But how can we ensure that this RAG flow is performing as expected?
+
+To validate this, we use evaluators. Evaluators are a form of offline testing that help assess the quality of your LLM's responses against a predefined test set. This ensures that the system meets the required standards before going live.
+
+Genkit offers several built-in evaluators and supports integration with standard evaluators from platforms like Vertex AI. For this task, we’ll be using two built-in evaluators: FAITHFULNESS and ANSWER_RELEVANCY.
+
+- Faithfulness: This metric checks whether the generated response is factually accurate and aligned with the information found in the retrieved documents. It ensures that the model doesn't "hallucinate" or make up information that wasn't found in the source data.
+
+- Answer Relevancy: This metric evaluates how well the generated response addresses the user's query. It measures the relevance of the answer, ensuring that the response is directly related to the question and provides useful information.
+
+By using these metrics, we can verify both the accuracy of the content and its relevance to the user's request, ensuring the RAG flow performs effectively.
+
+### Challenge Steps
+
+- Go to **js/flows-js/testRagInputs.json**.
+  - This file has the input data for the test. You can add more test cases here if you'd like.
+- Go to **js/flows-js/evaluators/genkit-tools.conf.js**.
+  - This contains the setup of the evaluation for the RAGFlow.
+- Examine the evaluator config:
+  - In the evaluator configuration, we specify the exact sources for the input, context, and output so that the evaluator can assess the flow accurately:
+
+    ```js
+    module.exports = {
+        evaluators: [
+        {
+            flowName: 'RAGFlow',
+            extractors: {
+            input: {outputOf: 'QueryTransformFlowPrompt'},
+            context: { outputOf: 'MixedRetriever' },
+            output: 'MovieFlowPrompt',
+            },
+        },
+        ],
+    };
+    ```
+
+    - Input: Extracted from the output of QueryTransformFlowPrompt.
+    - Context: Retrieved from the output of MixedRetriever, containing the relevant documents.
+    - Output: The response from MovieFlowPrompt is evaluated for quality.
+
+- Stop Genkit: In the terminal where Genkit is running, press Ctrl+C to stop it.
+Run the evaluator command:
+
+```sh
+genkit eval:flow RAGFlow --inputs testRagInputs.json
+```
+
+- You will be prompted to allow the evaluator to make chargeable API calls. Enter *y* to continue.
+
+    ![Evaluator prompt](images/eval-prompt.png)
+
+- Wait for the evaluation to complete: The evaluator will run for a few minutes and then exit.
+- Restart GenkitUI: Run the following command to start Genkit again:
+
+    ```sh
+    genkit start
+    ```
+
+- View the evaluation results:
+- Open your browser and go to http://localhost:4000.
+- Navigate to the Evaluate tab to view the results of your evaluation.
+
+  ![Evaluator output](images/eval-output.png)
+
+- Review the scores:
+  - Next to each test case, you will see scores for Answer Relevancy and Faithfulness.
+  - Expand each test case to view the Rationale section, which explains the reasoning behind the score
+  - Analyze the scores to understand why some test cases received high scores while others received lower ones.
+  - By reviewing the rationale and understanding how your system performed, you can improve the flow to better handle a range of user queries.
+
+
+### Success Criteria
