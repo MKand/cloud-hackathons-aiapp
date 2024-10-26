@@ -918,3 +918,7 @@ genkit eval:flow RAGFlow --inputs testRagInputs.json
   - By reviewing the rationale and understanding how your system performed, you can improve the flow to better handle a range of user queries.
 
 ### Success Criteria
+
+- You have evaluations for all test cases.
+- You understand why (if any) low groundedness scores have occured (less than 0.99)
+- You have ideas on how to improve the RAG flow based on the evaluator outcomes.
