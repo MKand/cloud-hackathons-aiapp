@@ -906,8 +906,8 @@ genkit eval:flow RAGFlow --inputs testRagInputs.json
     ```
 
 - View the evaluation results:
-- Open your browser and go to http://localhost:4000.
-- Navigate to the Evaluate tab to view the results of your evaluation.
+  - Open your browser and go to http://localhost:4000.
+  - Navigate to the Evaluate tab to view the results of your evaluation.
 
   ![Evaluator output](images/eval-output.png)
 
