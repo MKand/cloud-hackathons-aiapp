@@ -366,35 +366,17 @@ The students should notice how bad the performance is and create achievable SLOs
 This is a challenging exercise. The last SLO needs to be implmenting using the API as the GCP Monitoring UI for SLIs doesn't allow you to define different metrics in the numerator and denominator.
 Here is the command for it that needs to be run in a terminal to create all the SLOs.
 
-- Create Access token and service
-
-```sh
-ACCESS_TOKEN=`gcloud auth print-access-token`
-
-SERVICE_ID=movieguru-service
-
-CREATE_SERVICE_POST_BODY=$(cat <<EOF
-{
-  "displayName": "${SERVICE_ID}",
-  "gkeService": {
-    "projectId": "${PROJECT_ID}",
-    "location": "europe-west4",
-    "clusterName": "movie-guru-gke",
-    "namespaceName": "movie-guru",
-    "serviceName": "mockserver-service"
-  }
-}
-EOF
-)
-
-
-curl  --http1.1 --header "Authorization: Bearer ${ACCESS_TOKEN}" --header "Content-Type: application/json" -X POST -d "${CREATE_SERVICE_POST_BODY}" https://monitoring.googleapis.com/v3/projects/${PROJECT_ID}/services?service_id=${SERVICE_ID}
-
-```
-
 - SLO Main Page Load Success Rate
 
 ```sh
+## Make sure the env variable PROJECT_ID is set.
+
+## Unique Service ID of an existing service
+SERVICE_ID=<service UNIQUE id>
+
+## Get an access token
+ACCESS_TOKEN=`gcloud auth print-access-token`
+
 STARTUP_SUCCESS_SLO_POST_BODY=$(cat <<EOF
 {
   "displayName": "90% - Main Page Load Success Rate - Calendar Week",
@@ -415,34 +397,30 @@ curl  --http1.1 --header "Authorization: Bearer ${ACCESS_TOKEN}" --header "Conte
 
 ```
 
-- Main Page Load Latency Windowed SLO
+- Main Page Load Latency Windowed SLO. Choosing windowed rolling week here just to display a different wau of .
 
 ```sh
 STARTUP_LATENCY_SLO_POST_BODY=$(cat <<EOF
 {
-  "displayName": "99% - Main Page Load Latency - Calendar Week",
+  "displayName": "99% - Main Page Load Latency - Rolling Week",
   "goal": 0.99,
-  "calendarPeriod": "WEEK",
+  "rollingPeriod": "604800s",
   "serviceLevelIndicator": {
-    "windowsBased": {
-      "windowPeriod": "60s",
-      "goodTotalRatioThreshold": {
-        "performance": {
-          "distributionCut": {
+    "requestBased": {
+      "distributionCut": {
             "distributionFilter": "metric.type=\"prometheus.googleapis.com/movieguru_startup_latency_milliseconds/histogram\" resource.type=\"prometheus_target\"",
             "range": {
               "min": -1000,
               "max": 1000
             }
-          }
+          
         },
-        "threshold": 0.99
       }
     }
   }
-}
 EOF
 )
+
 curl  --http1.1 --header "Authorization: Bearer ${ACCESS_TOKEN}" --header "Content-Type: application/json" -X POST -d "${STARTUP_LATENCY_SLO_POST_BODY}" https://monitoring.googleapis.com/v3/projects/${PROJECT_ID}/services/${SERVICE_ID}/serviceLevelObjectives
 
 ```
@@ -479,19 +457,13 @@ CHAT_LATENCY_SLO_POST_BODY=$(cat <<EOF
   "goal": 0.99,
   "calendarPeriod": "DAY",
   "serviceLevelIndicator": {
-    "windowsBased": {
-      "windowPeriod": "60s",
-      "goodTotalRatioThreshold": {
-        "performance": {
+    "requestBased": {
           "distributionCut": {
             "distributionFilter": "metric.type=\"prometheus.googleapis.com/movieguru_chat_latency_milliseconds/histogram\" resource.type=\"prometheus_target\"",
             "range": {
               "min": -1000,
               "max": 5000
             }
-          }
-        },
-        "threshold": 0.99
       }
     }
   }
