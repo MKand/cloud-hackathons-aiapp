@@ -25,12 +25,13 @@ In this hack you will learn how to:
 ## Challenges
 
 - Challenge 1: Set up your working environment
-- Challenge 2: Explore the movie data
-- Challenge 3: Identify vector searchable fields in the Movie db
-- Challenge 4: Reconstruct the embeddings
-- Challenge 5: Incorporate keyword searches
-- Challenge 6: The full RAG flow
-- Challenge 7: Evaluating the quality of RAG
+- Challenge 2: Let's work with Genkit
+- Challenge 3: Explore the movie data
+- Challenge 4: Identify vector searchable fields in the Movie db
+- Challenge 5: Reconstruct the embeddings
+- Challenge 6: Incorporate keyword searches
+- Challenge 7: The full RAG flow
+- Challenge 8: Evaluating the quality of RAG
 
 ## Prerequisites
 
@@ -59,6 +60,8 @@ Our environment consists of:
 1. Our **PG Vector database** (hosts our movies data and vector embeddings).
 
 This challenge is about setting up the environment for the rest of the challenges.
+
+### Description
 
 Open your project in the GCP console, and open a **CloudShell Editor**. This should open up a VSCode-like editor. Make it full screen if it isn't already.
 If you developing locally, open up your IDE.
@@ -106,6 +109,8 @@ Step 4:
 
 > **Warning**: In production it is BAD practice to store keys in file. Applications running in GoogleCloud use serviceaccounts attached to the platform to perform authentication. The setup used here is simply for convenience.
 
+Step 5:
+
 - Create a shared network for all the containers. We will be running containers across different docker compose files so we want to ensure the db is reachable to all of the containers.
 
      ```sh
@@ -113,17 +118,13 @@ Step 4:
     docker compose -f docker-compose-setup.yaml up -d
      ```
 
-Step 5:
-
 - Lets set up the **Genkit Developer UI**.  From the root of the project directory run the following command.
 
     ```sh
     docker compose -f docker-compose-setup.yaml exec genkit sh
     ```
 
-- We are going to *exec* into the genkit container we created in the **docker-compose-setup.yaml file**. The reason we are not using **genkit start** as a startup command for the container is that it has an interactive step at startup that cannot be bypassed. So, we will exec into the container and then run the command **genkit start**.
-
-- This should open up a shell inside the container at the location **/app**.
+- We are going to *exec* into the genkit container we created in the **docker-compose-setup.yaml file**. This should open up a shell inside the container at the location **/app**.
 
 > **Note**: In the docker compose file, we mount the local directory **js/flows-js** into the container at **/app**, so that we can make changes in the local file system, while still being able to execute genkit tools from a container.
 
@@ -183,149 +184,68 @@ Genkit Tools UI: http://localhost:4000
 
     ![webpreview](images/webpreview.png)
 
-- This is the developer interface of Genkit. Using this interface, you can test out the Flows you have created, the prompts you have created, etc.
+- This is the developer interface of Genkit. Using this interface, you can test out the Flows, Prompts and other elements in the app etc.
 
 > **WARNING: Potential error message**: At first, the genkit ui might show an error message and have no flows or prompts loaded. This might happen if genkit has yet had the time to detect and load the necessary go files. If that happens, go to **js/flows-js/src/index.ts**, make a small change (add a newline) and save it. This will cause the files to be detected and reloaded.
 
-### Challenge steps
+### Challenge 2: Lets work with Genkit
 
-Work with your first prompt for the **UserProfileFlow**.
+### Introduction
 
-The **UserProfileFlowPrompt** plays a crucial role in the **Movie Guru** application by acting as a "silent observer" that analyzes user input to understand their long-standing movie preferences. It doesn't directly respond to the user but instead provides valuable insights to personalize the chatbot's recommendations.
+We're going to explore our first prompt for the **UserProfileFlow**.
+
+The **UserProfileFlowPrompt** plays a crucial role in the **Movie Guru** application by acting as a "silent observer" that analyzes user input to understand their long-standing movie preferences. 
+It doesn't directly respond to the user but instead provides valuable insights to personalize the chatbot's recommendations.
 
 Here, we're going explore the prompt structure, and test out the output of the model for different inputs.
 
-- Let's look at our first **DotPrompt**. In the **Developer UI** navigate to **Prompts/UserProfileFlowPrompt**. You should see something that looks like this:
+### Description
+
+- Let's look at our first [DotPrompt](#what-is-a-dotprompt). In the **Developer UI** navigate to **Prompts/UserProfileFlowPrompt**. You should see something that looks like this:
 
     ![Genkit UI UserProfileFlow Prompt](images/userProfileFlowPrompt.png)
 
-- You have empty inputs to the prompt.
+- **Try and example input**
+  - Run the prompt with the following inputs to understand the prompt's behavior:
 
     ```json
-        {
-            "userQuery": "",
-            "agentMessage": ""
-        }
+      {
+          "userQuery": "I love horror films",
+          "agentMessage": ""
+      }
+
+      {
+        "agentMessage": "",
+        "userQuery": "I feel like watching a movie with Tom Hanks."
+      }
+
+      {
+          "agentMessage": "",
+          "userQuery": "I really hate comedy films but love Tom Hanks."
+      }
+
+      {
+          "agentMessage": "I know of 3 actors: Tom Hanks, Johnny Depp, Susan Sarandon",
+          "userQuery": "Oh! I really love the last one."
+      }
     ```
 
-- **Understanding User Preferences**: We're building a system to personalize user experiences. To do this, we need to understand each user's preferences. This exercise focuses on how we analyze user statements to build that understanding.
-
-- **The Prompt Template**: At the bottom of the UI page, you'll find the prompt template. You can adjust the input values through the UI. However, to ensure consistency and maintainability, the prompt template itself is stored in the code file (`js/flows-js/src/userProfileFlow.ts`). Any changes to the prompt's structure require modifying the code. The prompt text instructs the model to act as a user profile expert.
-
-- **Discussion Points**: After reading the prompt, discuss in your group:
-  - How does the prompt guide the model's analysis of user statements?
-  - What are some potential challenges the model might face in interpreting diverse user input?
-
-- **Silent Analysis**: It's important to remember that this agent works behind the scenes. It doesn't directly interact with the user. Instead, it silently processes each user statement to build a profile of their preferences.
-
-- **How This Works**: This flow/agent analyzes user statements to understand their long-term likes and dislikes. The results of this analysis are organized into a structured format called `UserProfileFlowOutputSchema`. This schema includes fields like `likes` and `dislikes`, which allow us to easily categorize and store the user's preferences.
-
-- Run the prompt with the following input:
-
-     ```json
-        {
-            "userQuery": "I love horror films",
-            "agentMessage": ""
-        }
-    ```
-
-- You should see a model output that looks like this:
-
-    ```json
-    {
-      "profileChangeRecommendations": [
-        {
-          "item": "horror",
-          "category": "GENRE",
-          "reason": "The user specifically stated they love horror indicating a strong preference.",
-          "sentiment": "POSITIVE"
-        }
-      ],
-      "justification": "The user expressed a strong liking for horror films, indicating a long-term preference."
-    }
-    ```
-
-- The model analyses the user statement *"I love horror films"* and suggests that we add a Genre preference of Horror to the user's profile. The model also justifies why it makes this recommendation.
-- The model formats the output based on the output format schema definition (UserProfileFlowOutputSchema).
+  - **Explore the dotPrompt**:
+  
+    - What does this prompt instruct the model to do?
+    - What parts of the dotPrompt can you only edit in the code (`js/flows-js/src/userProfileFlow.ts`)?
+    - What are the input and output types for this prompt?
+    - What are the fields in each type?
+    - What are some potential challenges the model might face in interpreting diverse user input?
 
 ### Success Criteria
 
-Try a few more inputs to see how the model responds.
+You are able to explain the following:
 
-1. The model should ignore weak/temporary sentiments.  
-    The input of:
-
-    ```json
-    {
-        "agentMessage": "",
-        "userQuery": "I feel like watching a movie with Tom Hanks."
-    }
-    ```
-
-    Should return an empty recommendations like (something) like this. This is because the user doesn't express and strong enduring preferences.
-
-    ```text
-    {
-      "profileChangeRecommendations": []
-    }   
-    ```
-
-1. The model should be able to pick up multiple sentiments.  
-    The input of:
-
-    ```json
-    {
-        "agentMessage": "",
-        "userQuery": "I really hate comedy films but love Tom Hanks."
-    }
-    ```
-
-    Should return a model output like this:
-
-    ```json
-    {
-      "profileChangeRecommendations": [
-        {
-          "item": "comedy",
-          "category": "GENRE",
-          "reason": "The user specifically states they hate comedy films, which is a strong statement expressing their long-term dislike for the genre.",
-          "sentiment": "NEGATIVE"
-        },
-        {
-          "item": "Tom Hanks",
-          "category": "ACTOR",
-          "reason": "The user specifically states they love Tom Hanks, which is a strong statement expressing their long-term liking for this actor.",
-          "sentiment": "POSITIVE"
-        }
-      ],
-      "justification": "The user expressed a strong dislike for comedy films and a strong liking for Tom Hanks. These are both enduring preferences."
-    }
-    ```
-
-1. The model can infer context
-
-    ```json
-    {
-        "agentMessage": "I know of 3 actors: Tom Hanks, Johnny Depp, Susan Sarandon",
-        "userQuery": "Oh! I really love the last one."
-    }
-    ```
-
-    Should return a model output like this:
-
-    ```json
-       {
-      "profileChangeRecommendations": [
-        {
-          "item": "Susan Sarandon",
-          "reason": "The user stated they really love the last one, implying they like Susan Sarandon, as she is the last actor mentioned.",
-          "category": "ACTOR",
-          "sentiment": "POSITIVE"
-        }
-      ],
-      "justification": "The user's statement 'I really love the last one' is a strong expression of liking, and since the last actor mentioned was Susan Sarandon, it is safe to assume this liking is directed towards her."
-    }
-    ```
+- Goal of the prompt: You can clearly articulate the intended purpose of the given promot. What is it designed to achieve or what task does it help the user complete?
+- Input types: You can identify the kinds of input this dotPrompt requires.
+- Output types: You can describe the output this dotPrompt generates based on the given input.
+- Code-driven definition: You understand that while the user interface might offer some basic configuration options, the core functionality and structure of a dotPrompt are defined within the application's code.
 
 ### Learning Resources
 
@@ -339,13 +259,15 @@ Try a few more inputs to see how the model responds.
 Dotprompts are a way to write and manage your AI prompts like code. They're special files that let you define your prompt template, input and output types (could be basic types like strings or more complex custom types), and model settings all in one place. Unlike regular prompts, which are just text, Dotprompts allow you to easily insert variables and dynamic data using [Handlebars](https://handlebarsjs.com/guide/) templating. This means you can create reusable prompts that adapt to different situations and user inputs, making your AI interactions more personalized and effective.
 This makes it easy to version, test, and organize your prompts, keeping them consistent and improving your AI results.
 
-The working **Movie Guru** app and prompts have been tested for *gemini-1.5-flash*, but feel free to use a different model.
-
-## Challenge 2: Explore the movie data
+## Challenge 3: Explore the movie data
 
 ### Introduction
 
-Connect to the database.
+We're going to take a look at the data that powers the movie guru app.
+
+### Description
+
+- Connect to the database.
 
 - Go to <http://locahost:8082> to open the **adminer** interface.
     ![webpreview](images/webpreview.png)
@@ -398,9 +320,9 @@ Connect to the database.
   - Runtime: This indicates the length of the movie in minutes (e.g., "142").
   - Embedding: This is a vector embedding of the movie's data (derived from a string made by concatenating all the  text from the above fields.). This field is not meant for humans to understand.
 
-- The embedding field is indexed using an **HNSW** index (Hierarchical Navigable Small World). See the **Learning Resources** section in this challenge to understand why we index the embedding column.
+- What is the index-type used for the embedding?
 
-- View the posters. Pick a random movie in the db, and find the poster column and navigate to the link there (example: https://storage.googleapis.com/generated_posters/poster_2.png). These are fictious posters created for the fictional movies in the database.
+- View the posters. Pick a random movie in the db, and find the poster column and navigate to the link there (example: https://storage.googleapis.com/generated_posters/poster_2.png).
 
 ### Success Criteria
 
@@ -410,7 +332,7 @@ Try and answer the following questions:
 1. What are the different genres of movies that are in the database?
 1. What is the size of the vector embedding used here?
 1. What would the impact be if we used **more** or **fewer** vector dimensions in the embedding?
-1. Why do we use the **HNSW** index with **cosine similarity** as the distance metric? What other options are there?
+1. What is the index type used in the vector db for embedding field and what is the distance metric?
 
 ### Learning Resources
 
@@ -421,7 +343,6 @@ We create an index on our vector column (**embedding**) to speed up similarity s
 ## Challenge 3: Identify Vector searchable fields in the Movie db
 
 ### Introduction
-
 
 We're creating a chatbot to help users find movies. To give users the best experience, our chatbot needs to be intelligent in how it searches our movie database.  This means knowing when to use different search methods:
 
@@ -434,6 +355,7 @@ We're creating a chatbot to help users find movies. To give users the best exper
 To make this work, we'll store our movie information in a combination of formats. Some data will be stored additionally in a special format that allows us to capture the meaning and relationships between words and concepts. Other information will be stored in a way that's best suited for simple keyword matching.
 
 ### Challenge
+
 You have access to a database of movie information, which includes various types of data such as movie titles, actors, directors, plot summaries, genres, and release dates (see the next section for details information). Your task is to analyze this data and determine the most appropriate format for storing and searching each data type.
 
 Consider these different data formats and how they relate to user search behavior:
@@ -455,7 +377,7 @@ tconst (unique ID)
 Genres
 Runtime
 
-### Challenge Steps
+### Description
 
 1. Identify the fields where users are most likely to search for exact textual/numeric matches. Make a list of those fields on a piece of paper. Write down a few example search queries.
 
@@ -494,7 +416,7 @@ In this challenge, we are optimizing the search capabilities by implementing vec
 
 In the next steps, we'll work with a process that takes raw movie data, generates embeddings from key fields, and uploads them to a PostgreSQL database for vector searching. Currently, the database already contains an embedding column, but the existing embeddings were generated using **all** the movie fields. In the previous challenge, we identified that not all fields are relevant for semantic (vector) search. So, in this step, we'll refine the process by embedding only the most meaningful fields—those that improve the accuracy and relevance of the vector search results and re-upload them to the database.
 
-### Challenge Steps
+### Description
 
 - **Navigate to the Indexer Flow**: Go to **js/indexer/src/indexerFlow.ts**. This file contains the flow that processes the raw data from **dataset/movies_with_posters.csv**, creates embeddings for each movie, and uploads the embeddings and metadata into the PostgreSQL database.
 
@@ -648,7 +570,7 @@ export const mixedRetriever = defineRetriever(
 );
 ```
 
-### Challenge steps
+### Description
 
 Your goal is to write a prompt for the **MixedSearchFlow** (**js/flows-js/src/mixedSearchFlow.ts**) that performs the following tasks:
 
@@ -682,7 +604,6 @@ Perform the following searches in the MixedSearchFlow:
 
 1. A search for "The Decoys Ploy" should result in a single document being returned. Inspecting the trace should reveal that it used the **MixedRetriever** without an embedding step.
 1. A search for "movies with children" should result in around 10 documents being returned. Inspecting the trace should reveal that it used the **MixedRetriever** with an embedding step.
-
 
 ## Challenge 6: The full RAG flow
 
@@ -723,7 +644,7 @@ You need to perform the following steps:
 
 1. The **Movie Guru** app has fully fictional data. No real movies, actors, directors are used. You want to make sure that the model doesn't start returning data from the movies in the real world. To do this, you will need to instruct the model to only use data from the context documents you send.
 
-### Challenge-steps
+### Description
 
 1. Go to **js/flows-js/src/prompts.ts** and look at the movie flow prompt.
 
@@ -882,7 +803,7 @@ Genkit offers several built-in evaluators and supports integration with standard
 
 By using these metrics, we can verify both the accuracy of the content and its relevance to the user's request, ensuring the RAG flow performs effectively.
 
-### Challenge Steps
+### Description
 
 - Go to **js/flows-js/testRagInputs.json**.
   - This file has the input data for the test. You can add more test cases here if you'd like.
