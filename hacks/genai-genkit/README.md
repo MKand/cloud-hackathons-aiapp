@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Learn how to create and deploy a generative AI application with Google Cloud's Genkit and Firebase.
+Learn how to create and deploy a GenAI application with Google Cloud and Firebase Genkit.
 This hands-on example provides skills transferable to other GenAI frameworks.
 
 You will learn how create the GenAI components that power the ****Movie Guru**** application.
@@ -16,11 +16,11 @@ Watch the video below to see what it does and understand the flows you will be b
 In this hack you will learn how to:
 
    1. Using Genkit to build AI based applications.
-   2. Vectorising simple datasets.
-   3. Creating prompts in Genkit using dotPrompt.
-   4. Debugging using Genkit Developer UI.
-   5. Using evaluators.
-   6. Incorporating a RAG flow.
+   1. Vectorising simple datasets.
+   1. Creating prompts in Genkit using dotPrompt.
+   1. Debugging using Genkit Developer UI.
+   1. Using evaluators.
+   1. Incorporating a RAG flow.
 
 ## Challenges
 
@@ -31,7 +31,6 @@ In this hack you will learn how to:
 - Challenge 5: Incorporate keyword searches
 - Challenge 6: The full RAG flow
 - Challenge 7: Evaluating the quality of RAG
-
 
 ## Prerequisites
 
@@ -56,8 +55,8 @@ We're working with Genkit on Node.js to execute our challenges.
 Our environment consists of:
 
 1. Our **Genkit Server** (that hosts the API endpoints that execute certain flows, retrievers etc).
-2. Our **Genkit Developer UI** (we can test out our Flows with different inputs, view traces, and debug potential issues).
-3. Our **PG Vector database** (hosts our movies data and vector embeddings).
+1. Our **Genkit Developer UI** (we can test out our Flows with different inputs, view traces, and debug potential issues).
+1. Our **PG Vector database** (hosts our movies data and vector embeddings).
 
 This challenge is about setting up the environment for the rest of the challenges.
 
