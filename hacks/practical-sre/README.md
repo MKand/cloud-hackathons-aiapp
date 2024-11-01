@@ -1,12 +1,12 @@
 # Practical SRE
 
-Welcome to the Practical SRE (Site Reliability Engineering) gHack! In this hands-on session, you’ll step into the role of SREs and Product Owners for the **Movie Guru** GenAI app—a cutting-edge application that helps users find movies using natural language queries powered by AI. Your mission is to ensure that Movie Guru delivers a smooth, reliable, and responsive experience for its users.
+Welcome to the Practical SRE (Site Reliability Engineering) gHack! In this hands-on session, you'll step into the role of SREs and Product Owners for the **Movie Guru** GenAI app—a cutting-edge application that helps users find movies using natural language queries powered by AI. Your mission is to ensure that Movie Guru delivers a smooth, reliable, and responsive experience for its users.
 
-The Movie Guru app's backend is currently running in your cloud environments and has been pre-instrumented to silently generate a wealth of metrics through the use of a load generator. This means that as you work on these challenges, you’ll have access to valuable data reflecting its performance and user interactions, allowing you to make informed decisions throughout the workshop.
+The Movie Guru app's backend is currently running in your cloud environments and has been pre-instrumented to silently generate a wealth of metrics through the use of a load generator. This means that as you work on these challenges, you'll have access to valuable data reflecting its performance and user interactions, allowing you to make informed decisions throughout the workshop.
 
-By the end of this workshop, you’ll have developed a comprehensive reliability framework for Movie Guru, gaining practical SRE skills that can be applied to real-world systems.
+By the end of this workshop, you'll have developed a comprehensive reliability framework for Movie Guru, gaining practical SRE skills that can be applied to real-world systems.
 
-Remember, if there is a term being used in the challenge you don’t understand, look at the **Learning Resources** section at the bottom of the challenge text. Otherwise, **Google** can be your best friend.
+Remember, if there is a term being used in the challenge you don't understand, look at the **Learning Resources** section at the bottom of the challenge text. Otherwise, **Google** can be your best friend.
 
 ## Learning Objectives
 
@@ -644,7 +644,6 @@ Burn rate measures how quickly you're using up your error budget.  It acts as an
 - A healthy burn rate is beneficial, indicating that you are utilizing your error budgets effectively for improvements and planned maintenance. If you error budget is consistently near 100% at the end of the compliance period, then you're likely wasting these windows.
 - A burn rate of 1x means that your error budget will be fully consumed by the end of the compliance period.
 - While you established the SLOs in Challenge 5, it's important to note that the error budgets are calculated from the beginning of the lab, as metrics collection commenced in Challenge 1.
-
 
 ## Challenge 8: What's really UP, doc?
 

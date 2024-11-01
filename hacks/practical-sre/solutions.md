@@ -397,7 +397,7 @@ curl  --http1.1 --header "Authorization: Bearer ${ACCESS_TOKEN}" --header "Conte
 
 ```
 
-- Main Page Load Latency Windowed SLO. Choosing windowed rolling week here just to display a different wau of .
+- Main Page Load Latency Windowed SLO. Choosing windowed rolling week here just to demonstrate a different way of setting SLOs up.
 
 ```sh
 STARTUP_LATENCY_SLO_POST_BODY=$(cat <<EOF
