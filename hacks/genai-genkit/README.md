@@ -506,11 +506,11 @@ Perform the following searches in the MixedSearchFlow:
 ### Introduction
 
 This is another prompt engineering challenge.
-In the previous steps, we got relevant documents based on the user's search query.
+In the previous steps, we've learnt how to get relevant documents based on the user's search query.
 
-Now it is time to take the relevant documents, along with the conversation history, and craft a response to the user. This is the response that the user finally recieves when chatting with the **Movie Guru** chatbot.
+Now it is time to implement the full RAG flow that takes the conversation history, the user's message, and crafts a response to the user. This is the response that the user finally recieves when chatting with the **Movie Guru** chatbot.
 
-The **conversation history** is relevant as the user's intent is often not captured in a single (latest) message. Look at the example below:
+The **conversation history** is relevant as the user's intent is often not captured in a single (latest) message. Look at the example below to understand why:
 
 ```text
 User: I can't believe they cast Robert Pattinson as Batman, he's way too gloomy!
@@ -526,7 +526,7 @@ User:  Really? What kind of movies has he been in since then?
 
 ### Description
 
-1. Go to **js/flows-js/src/prompts.ts** and look at the (incomplete) movie flow prompt.
+1. Go to **js/flows-js/src/prompts.ts** and look at the (minimal) movie flow prompt.
 1. Go to the genkit ui and find **Flows/RAGFlow**. Enter the following in the input and run the prompt.
 
     ```json
@@ -553,10 +553,10 @@ User:  Really? What kind of movies has he been in since then?
     ```
 
 1. Edit the prompt to achieve the following:
-   1. Analyses the conversation history, and the user's statement to return a sensible response to the user.
+   1. Analyse the conversation history, and the user's statement to return a sensible response to the user.
    1. The **Movie Guru** app has fully fictional data. No real movies, actors, directors are used. Make sure that the model doesn't start returning data from the movies in the real world. To do this, you will need to instruct the model to only use data from the context documents you send.
-   1. If the user's message doesn't require any movie information being returned, then the response doesn't return any movies. Eg: "hello", "thanks".
-   1. If the user's message requires  movie information being returned, then the response returns a list of movies/relevant information. Eg: "how me some horror films", *tell me about the movie xyz*.
+   1. If the user's message doesn't require any movie information being returned, then the response doesn't return any movies. Eg: *hello*, *thanks*.
+   1. If the user's message requires  movie information being returned, then the response returns a list of movies/relevant information. Eg: *how me some horror films*, *tell me about the movie xyz*.
    1. [New task in prompt engineering] Ensure that the LLM stays true to it's task. That is the user cannot change it's purpose through a cratfy query (jailbreaking). For example:
 
     ```text
@@ -568,7 +568,7 @@ User:  Really? What kind of movies has he been in since then?
 
 1. You understand what the **RAGFlow** does.
 2. You understand the inputs to the flow.
-3. You understand the steps the RAGFlow takes?
+3. You understand the steps the RAGFlow takes.
 
 Evaluate your flow with these queries:
 
@@ -582,10 +582,6 @@ Evaluate your flow with these queries:
                 "content": ""
             }
         ],
-        "userPreferences": {
-            "likes": { "actors":[], "directors":[], "genres":[], "others":[]},
-            "dislikes": {"actors":[], "directors":[], "genres":[], "others":[]}
-        },
         "userMessage": "Hello."
     }
     ```
@@ -619,7 +615,7 @@ Evaluate your flow with these queries:
         "answer": "Of course! I can help with that. I have a few comedies in my database.  Would you prefer something action-packed like 'Jesters Prank' or maybe a more dramatic comedy like 'But It Sounds Funny?'",
         "relevantMovies": [
             {
-            "title": "But It Sounds Funny)",
+            "title": "But It Sounds Funny",
             "reason": "This movie has the comedy genre and focuses on a stand-up comedian."
             },
             {
@@ -665,7 +661,7 @@ Evaluate your flow with these queries:
 
 - [Genkit RAG](https://firebase.google.com/docs/genkit/rag)
 
-## Challenge : Evaluating the quality of RAG
+## Challenge 8: Evaluating the quality of RAG
 
 ### Introduction
 
