@@ -56,17 +56,12 @@ resource "google_project_iam_member" "vertex-user" {
   member  = "serviceAccount:${google_service_account.default.email}"
 }
 
-resource "google_project_iam_member" "sql-user" {
+resource "google_project_iam_member" "vertex-eval" {
   project = var.gcp_project_id
-  role    = "roles/cloudsql.client"
+  role    = "roles/aiplatform.rapidevalServiceAgent"
   member  = "serviceAccount:${google_service_account.default.email}"
 }
 
-resource "google_project_iam_member" "redis-user" {
-  project = var.gcp_project_id
-  role    = "roles/redis.editor"
-  member  = "serviceAccount:${google_service_account.default.email}"
-}
 
 resource "google_project_iam_member" "monitoring-writer" {
   project = var.gcp_project_id

@@ -2,25 +2,41 @@
 
 ## Introduction
 
-This hack helps you create and deploy a GenAI application using Google Cloud and Firebase Genkit.
+This is a coaches guide for this ghack.
+This hack helps you create an GenAI application's flows (see below) using Google Cloud and Firebase Genkit.
 
 > **Note** If you are a gHacks participant, this is the answer guide. Don't cheat yourself by looking at this guide during the hack!
 
 ## Coach's Guides
 
-- Challenge 1: Upload the data to the vector database
-  - Create an embedding for each entry in the dataset (discussed later), and upload the data to a vector database using the predefined schema. Do this using a genkit flow.
-- Challenge 2: Your first flow that analyses the user's input.
-  - Create a flow that takes the user's latest input and make sure you extract *any* long term preference or dislike.
-- Challenge 3: Flow that analyses the converstation history and transforms the user's latest query with the relevant context.
-- Challenge 4: Retrieve the relevant documents from the transformed context created at the previous challenge.
-- Challenge 5: Create a meaningful response to the user (RAG flow).
+- Challenge 1: Set up your working environment
+  - We run everything in the cloudshell env using docker to make sure there are no environment differences.
+- Challenge 2: Let's work with Genkit
+  - We look through the genkit UI and learn how dotprompts work
+- Challenge 3: Explore the movie data
+  - We explore the movie data in the local postgres DB using adminer
+- Challenge 4: Identify vector searchable fields in the Movie db
+  - Some user queries are suitable for vector searches while others need text-match based searches.
+- Challenge 5: Reconstruct the embeddings
+  - The current db has an embedding field that contains the embedding of nearlt fields in the db. This is clearly not necesary. We select the necessary fields for vector embeddings and reconstruct embeddings based solely based on those.
+- Challenge 6: Incorporate keyword searches
+  - All the queries so far are only embeddings based. We need to incorporate keyword searches too.
+- Challenge 7: The full RAG flow
   - Select the relevant outputs from the previous stages and return a meaningful output to the user.
+- Challenge 8: Evaluating the quality of RAG
+
+## Coach Prerequisites
+
+This hack has prerequisites that a coach is responsible for understanding and/or setting up BEFORE hosting an event. Please review the [gHacks Hosting Guide](https://ghacks.dev/faq/howto-host-hack.html) for information on how to host a hack event.
+
+The guide covers the common preparation steps a coach needs to do before any gHacks event, including how to properly setup Google Meet and Chat Spaces.
 
 ### Student Resources
 
 Before the hack, it is the Coach's responsibility create and make available needed resources including:
 
+- Files for students
+- Lecture presentation
 - Terraform scripts for setup (if running in the customer's own environment)
 
 Follow [these instructions](https://ghacks.dev/faq/howto-host-hack.html#making-resources-available) to create the zip files needed and upload them to your gHack's Google Space's Files area.
@@ -28,6 +44,10 @@ Follow [these instructions](https://ghacks.dev/faq/howto-host-hack.html#making-r
 Always refer students to the [gHacks website](https://ghacks.dev) for the student guide: [https://ghacks.dev](https://ghacks.dev)
 
 > **Note** Students should **NOT** be given a link to the gHacks Github repo before or during a hack. The student guide intentionally does **NOT** have any links to the Coach's guide or the GitHub repo.
+
+### Additional Coach Prerequisites (Optional)
+
+*Please list any additional pre-event setup steps a coach would be required to set up such as, creating or hosting a shared dataset, or preparing external resources.*
 
 ## Google Cloud Requirements
 
@@ -43,11 +63,14 @@ This hack requires students to have access to Google Cloud project where they ca
 ## Suggested Hack Agenda
 
 - Day 1
-  - Challenge 1 (45 mins)
-  - Challenge 2 (30 mins)
+  - Challenge 1 (30 mins)
+  - Challenge 2 (45 mins)
   - Challenge 3 (30 mins)
   - Challenge 4 (45 mins)
-  - Challenge 5 (30 mins)
+  - Challenge 5 (45 mins)
+  - Challenge 6 (45 mins)
+  - Challenge 7 (30 mins)
+  - Challenge 8 (30 mins)
 
 ## Repository Contents
 
@@ -57,6 +80,8 @@ The default files & folders are listed below. You may add to this if you want to
   - Student's Challenge Guide
 - `solutions.md`
   - Coach's Guide and related files
+- `./resources`
+  - Resource files, sample code, scripts, etc meant to be provided to students. (Must be packaged up by the coach and provided to students at start of event)
 - `./artifacts`
   - Terraform scripts and other files needed to set up the environment for the gHack
 - `./images`
@@ -68,531 +93,67 @@ The default files & folders are listed below. You may add to this if you want to
   - Before we can hack, you will need to set up a few things.
   - Run the instructions on our [Environment Setup](../../faq/howto-setup-environment.md) page.
 
-## Challenge 1: Upload the data to the vector database
+## Challenge 1: Set up your working environment
 
 ### Notes & Guidance
 
 [Solution for Challenge 1: GoLang]
 
-- Students create a **content** entry with the following fields (Title, Plot, Director, Runtime_mins, Rating, Release, Director, Actors). *Poster* and *tconst* are excluded.
-- They write createText method to include all the aforementioned fields and format the **Genre** and **Actors** fields, as you want comma seperated values.
-- They create an embedding for the output of the **createText** method.
-- They upload the entry (embedding and other fields) into the **movies** table.
+- Students need to follow the steps carefully.
+- Where things can go wrong:
+  - They download the service account key and must name it **.key.json**. Check the spelling correctly.
+  - Make sure they create the **docker network** before run *docker compose -f filename up*
+  - Genkit takes a while to start up, make sure the output of their screen resembles the output shown before you open up genkit ui.
+  - There may be a version incompatibility between genkit evaluators and other genkit dependencies in **node**. If **npm install** fails, use the **-force** command.
 
-This is what the functions should look like in **chat_server_go/pkg/flows/indexerFlow.go**.
-
-```go
-func GetIndexerFlow(maxRetLength int, movieDB *db.MovieDB, embedder ai.Embedder) *genkit.Flow[*types.MovieContext, *ai.Document, struct{}] {
- indexerFlow := genkit.DefineFlow("movieDocFlow",
-  func(ctx context.Context, doc *types.MovieContext) (*ai.Document, error) {
-   time.Sleep(1 / 3 * time.Second) // reduce rate to rate limits on embedding model API
-   content := createText(doc)
-   aiDoc := ai.DocumentFromText(content, nil)
-   embedding, err := ai.Embed(ctx, embedder, ai.WithEmbedDocs(aiDoc))
-   if err != nil {
-    log.Println(err)
-    return nil, err
-   }
-
-   query := `INSERT INTO movies (embedding, title, runtime_mins, genres, rating, released, actors, director, plot, poster, tconst, content) 
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-   ON CONFLICT (tconst) DO NOTHING;
-   `
-   dbCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-   defer cancel()
-
-   _, err = movieDB.DB.ExecContext(dbCtx, query,
-    pgv.NewVector(embedding.Embeddings[0].Embedding), doc.Title, doc.RuntimeMinutes, genres, doc.Rating, doc.Released, actors, doc.Director, doc.Plot, doc.Poster, doc.Tconst, content)
-   if err != nil {
-    return nil, err
-   }
-   return aiDoc, nil
-  })
- return indexerFlow
-}
-
-func createText(movie *types.MovieContext) string {
- dataDict := map[string]interface{}{
-  "title":        movie.Title,
-  "runtime_mins": movie.RuntimeMinutes,
-  "genres": func() string {
-   if len(movie.Genres) > 0 {
-    return strings.Join(movie.Genres, ", ") // Assuming you want to join genres with commas
-   }
-   return ""
-  }(),
-  "rating": func() interface{} {
-   if movie.Rating > 0 {
-    return fmt.Sprintf("%.1f", movie.Rating)
-   }
-   return ""
-  }(),
-  "released": func() interface{} {
-   if movie.Released > 0 {
-    return movie.Released
-   }
-   return ""
-  }(),
-  "actors": func() string {
-   if len(movie.Actors) > 0 {
-    return strings.Join(movie.Actors, ", ") // Assuming you want to join actors with commas
-   }
-   return ""
-  }(),
-  "director": func() string {
-   if movie.Director != "" {
-    return movie.Director
-   }
-   return ""
-  }(),
-  "plot": func() string {
-   if movie.Plot != "" {
-    return movie.Plot
-   }
-   return ""
-  }(),
- }
-
- jsonData, _ := json.Marshal(dataDict)
- stringData := string(jsonData)
- return stringData
-}
-```
-
-[Solution for Challenge 1: TypeScript]
-
-- Students create a **content** entry with the following fields (Title, Plot, Director, Runtime_mins, Rating, Release, Director, Actors). *Poster* and *tconst* are excluded.
-- They write createText method to include all the aforementioned fields and format the **Genre** and **Actors** fields, as you want comma seperated values.
-- They create an embedding for the output of the **createText** method.
-- They upload the entry (embedding and other fields) into the **movies** table.
-This is what the functions should look like in **js/indexer/src/indexerFlow.ts**.
-
-```ts
-export const IndexerFlow = defineFlow(
-  {
-      name: 'indexerFlow',
-      inputSchema: MovieContextSchema,
-      outputSchema: z.string(),
-  },
-    async (doc) => {
-      const db = await openDB();
-      if (!db) {
-        throw new Error('Database connection failed');
-      }
-      try {
-        // Reduce rate at which operation is performed to avoid hitting VertexAI rate limits
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        const filteredContent = createText(doc);
-        const embedding = await embed({
-          embedder: textEmbedding004,
-          content: filteredContent,
-        });
-        try {
-          await db`
-          INSERT INTO movies (embedding, title, runtime_mins, genres, rating, released, actors, director, plot, poster, tconst, content)
-          VALUES (${toSql(embedding)}, ${doc.title}, ${doc.runtimeMinutes}, ${doc.genres}, ${doc.rating}, ${doc.released}, ${doc.actors}, ${doc.director}, ${doc.plot}, ${doc.poster}, ${doc.tconst}, ${filteredContent})
-    ON CONFLICT (tconst) DO NOTHING;
-        `;
-          return filteredContent; 
-        } catch (error) {
-          console.error('Error inserting or updating movie:', error);
-          throw error; // Re-throw the error to be handled by the outer try...catch
-        }
-      } catch (error) {
-        console.error('Error indexing movie:', error);
-        return 'Error indexing movie'; // Return an error message
-      }
-    }
-  );
-
-   function createText(movie: MovieContext): string {
-    const dataDict = {
-      title: movie.title,
-      runtime_mins: movie.runtimeMinutes,
-      genres: movie.genres.length > 0 ? movie.genres.join(', ') : '',
-      rating: movie.rating > 0 ? movie.rating.toFixed(1) : '',
-      released: movie.released > 0 ? movie.released : '',
-      actors: movie.actors.length > 0 ? movie.actors.join(', ') : '',
-      director: movie.director !== '' ? movie.director : '',
-      plot: movie.plot !== '' ? movie.plot : '',
-    };
-  
-    const jsonData = JSON.stringify(dataDict);
-    return jsonData;
-  }
-```
-
-## Challenge 2: Create a prompt for the UserProfileFlow to extract strong preferences and dislikes from the user's statement
+## Challenge 2: Lets work with Genkit
 
 ### Notes & Guidance
 
-Example prompt that meets the success criteria:
+Students will be working on their first **dotprompt** for **UserProfileFlow**.
 
-```text
-  You are a user's movie profiling expert focused on uncovering users' enduring likes and dislikes. 
-  Your task is to analyze the user message and extract ONLY strongly expressed, enduring likes and dislikes related to movies.
-  Once you extract any new likes or dislikes from the current query respond with the items you extracted with:
-   1. the category (ACTOR, DIRECTOR, GENRE, OTHER)
-   2. the item value
-   3. your reason behind the choice
-   4. the sentiment of the user has about the item (POSITIVE, NEGATIVE).
-   
-  Guidelines:
-  1. Strong likes and dislikes Only: Add or Remove ONLY items expressed with strong language indicating long-term enjoyment or aversion (e.g., "love," "hate," "can't stand,", "always enjoy"). Ignore mild or neutral items (e.g., "like,", "okay with," "fine", "in the mood for", "do not feel like").
-  2. Distinguish current state of mind vs. Enduring likes and dislikes:  Focus only on long-term likes or dislikes while ignoring current state of mind. 
-  
-  Examples:
-   ---
-   userMessage: "I want to watch a horror movie with Christina Appelgate" 
-   output: profileChangeRecommendations:[]
-   ---
-   userMessage: "I love horror movies and want to watch one with Christina Appelgate" 
-   output: profileChangeRecommendations=[
-   item: horror,
-   category: genre,
-   reason: The user specifically stated they love horror indicating a strong preference. They are looking for one with Christina Appelgate, which is a current desire and not an enduring preference.
-   sentiment: POSITIVE]
-   ---
-   userMessage: "Show me some action films" 
-   output: profileChangeRecommendations:[]
-   ---
-   userMessage: "I dont feel like watching an action film" 
-   output: profileChangeRecommendations:[]
-   ---
-   userMessage: "I dont like action films" 
-   output: profileChangeRecommendations=[
-   item: action,
-   category: genre,
-   reason: The user specifically states they don't like action films which is a statement that expresses their long term disklike for action films.
-   sentiment: NEGATIVE]
-   ---
+- Make sure they understand that the prompt can only be edited in code.
+- They can modify other params in the dotPrompt view in the **genkit UI**.
+- Make sure they understand that the prompt instructs the model to analsye a user's statement and extract any dislikes or likes they may express.
+- The prompt doesn't construct a response to the user. It instead returns a **typed** response that the app uses to update the user's profile.
+- The inputs to the prompt are:
+  - The user's statement (userQuery)
+  - The agent's previous message to the user, if there is one (agentMessage)
+- The outputs are:
+  - UserProfileRecommendations: A list of recommendations the model thinks the user has strong like/dislike for, if the info is present in the **userQuery**.
+  - Justification: The reason the model thinks the user likes/dislikes something.
+- It is important for the students to note that the model for this flow takes in strongly typed inputs and returns a stronly typed output. This output can be processed by the app.
 
-  3. Focus on Specifics:  Look for concrete details about genres, directors, actors, plots, or other movie aspects.
-  4. Give an explanation as to why you made the choice.
-   
-   Here are the inputs:: 
-   * Optional Message 0 from agent: {{agentMessage}}
-   * Required Message 1 from user: {{query}}
-
-  Respond with the following:
-
-   *   a *justification* about why you created the query this way.
-   *   a list of *profileChangeRecommendations* that are a list of extracted strong likes or dislikes with the following fields: category, item, reason, sentiment
-```
-
-### Anatomy of the prompt
-
-**1. Role Definition:**
-
-> You are a user's movie profiling expert focused on uncovering users' enduring likes and dislikes.
-
-- **Purpose:** Clearly defines the LLM's role and expertise.
-
-**2. Task Instruction:**
-
-> Your task is to analyze the user message and extract ONLY strongly expressed, enduring likes and dislikes related to movies.
-
-- **Purpose:** Specifies the primary goal and scope of the task.
-
-**3. Output Format:**
-
-> Once you extract any new likes or dislikes... respond with the items you extracted with:
->
-> 1. the category (ACTOR, DIRECTOR, GENRE, OTHER)
-> 2. the item value
-> 3. your reason behind the choice
-> 4. the sentiment of the user has about the item (POSITIVE, NEGATIVE).
-
-- **Purpose:**  Provides a structured format for the LLM's response.
-
-**4. Guidelines:**
-
-> Guidelines:
->
-> 1. Strong likes and dislikes Only: ... (examples provided)
-> 2. Distinguish current state of mind vs. Enduring likes and dislikes: ... (example provided)
-> 3. Focus on Specifics: ...
-> 4. Give an explanation as to why you made the choice.
-
-- **Purpose:** Offers detailed instructions and clarifications to guide the LLM's analysis.
-
-**5. Input Specification:**
-
-> Inputs:
->
-> 1. Optional Message 0 from agent: {{agentMessage}}
-> 2. Required Message 1 from user: {{query}}
-
-- **Purpose:** Clearly defines the expected input data and its structure.
-
-## Challenge 3: Create a prompt and flow for the QueryTransformFlow to create a query for the vector database
+## Challenge 3: Explore the movie data
 
 ### Notes & Guidance
 
-Example prompt that meets the success criteria:
+The students understand the structure of the movies db.
 
-Golang:
+- There use adminer to log into the db.
+- They notice the **embedding** column which should have very long vectors (768 dimensions).
+- They notice that the rest of the columns are regular text based columns.
+- They count the number of movies (652). They can do this in the adminer interface.
 
-```text
-You are a search query refinement expert regarding movies and movie related information.  Your goal is to analyse the user's intent and create a short query for a vector search engine specialised in movie related information.
-  If the user's intent doesn't require a search in the database then return an empty transformedQuery. For example: if the user is greeting you, or ending the conversation.
-  You should NOT attempt to answer's the user's query.
-  Instructions:
+  ```sql
+  SELECT COUNT(*) FROM "movies";
+  ```
 
-  1. Analyze the conversation history to understand the context and main topics. Focus on the user's most recent request. The history may be empty.
-  2.  Use the user profile when relevant:
-   *   Include strong likes if they align with the query.
-   *   Include strong dislikes only if they conflict with or narrow the request.
-   *   Ignore irrelevant likes or dislikes.
-   *  The user may have no strong likes or dislikes
-  3. Prioritize the user's current request as the core of the search query.
-  4. Keep the transformed query concise and specific.
-  5. Only use the information in the conversation history, the user's preferences and the current request to respond. Do not use other sources of information.
-  6. If the user is talking about topics unrelated to movies, return an empty transformed query and state the intent as UNCLEAR.
-  7. You have absolutely no knowledge of movies.
+- They understand the basic concept of the **HSNW index** and the **cosine similarity** distance metric. Encourage them to read the learning resources.
+- **Impact of the number of dimensions**: In a vector database, lower-dimensional vectors generally lead to faster search speeds and reduced storage requirements but may lose some accuracy and expressiveness. Higher-dimensional vectors can capture more complex data relationships, potentially improving accuracy, but they increase storage costs and computational demands, which can slow down search performance. The optimal dimensionality depends on balancing the need for accuracy with performance and storage constraints. Higher dimensions work well for complex data where accuracy is critical, while lower dimensions are suitable for simpler data or when speed and efficiency are priorities.
 
-  Here are the inputs:
-  * Conversation History (this may be empty):
-   {{history}}
-  * UserProfile (this may be empty):
-   {{userProfile}}
-  * User Message:
-   {{userMessage}}
+## Challenge 4: Identify Vector searchable fields in the Movie db
 
-  Respond with the following:
+### Notes & Guidance
 
-  *   a *justification* about why you created the query this way.
-  *   the *transformedQuery* which is the resulting refined search query.
-  *   a *userIntent*, which is one of GREET, END_CONVERSATION, REQUEST, RESPONSE, ACKNOWLEDGE, UNCLEAR
-  
-```
+In this challenge students need to look through the fields in the movies db and identify which fields user's will likely search for using semantic queries and which ones will likely be looked for using keyword matches.
 
-TypeScript
+- Semantic: title, plot, genres
+- Keyword: runtime, year of release, actors, directors, title, rating.
+- Unsearched fields: Tconst, poster
 
-```ts
-You are a movie search query expert. Analyze the user's request and create a short, refined query for a movie-specific vector search engine.
-
-Instructions:
-
-1. Analyze the conversation history, focusing on the most recent request.
-2. If relevant, use the user's likes and dislikes from their profile.
-    * Include strong likes if they align with the query.
-    * Include strong dislikes only if they conflict with or narrow the request.
-3. Prioritize the user's current request.
-4. Keep the query concise and specific to movies.
-5. If the user's intent is unrelated to movies (e.g., greetings, ending conversation), return an empty transformedQuery and set userIntent to the appropriate value (e.g., GREET, END_CONVERSATION).
-6. If the user's intent is unclear, return an empty transformedQuery and set userIntent to UNCLEAR.
-
-Inputs:
-
-* userProfile: (May be empty)
-    * likes: 
-        * actors: {{#each userProfile.likes.actors}}{{this}}, {{~/each}}
-        * directors: {{#each userProfile.likes.directors}}{{this}}, {{~/each}}
-        * genres: {{#each userProfile.likes.genres}}{{this}}, {{~/each}}
-        * others: {{#each userProfile.likes.others}}{{this}}, {{~/each}}
-    * dislikes: 
-        * actors: {{#each userProfile.dislikes.actors}}{{this}}, {{~/each}}
-        * directors: {{#each userProfile.dislikes.directors}}{{this}}, {{~/each}}
-        * genres: {{#each userProfile.dislikes.genres}}{{this}}, {{~/each}}
-        * others: {{#each userProfile.dislikes.others}}{{this}}, {{~/each}}
-* history: (May be empty)
-    {{#each history}}{{this.sender}}: {{this.message}}{{~/each}}
-* userMessage: {{userMessage}}
-
-
-Respond with:
-
-* justification: Why you created the query this way.
-* transformedQuery: The refined search query.
-* userIntent: One of: GREET, END_CONVERSATION, REQUEST, RESPONSE, ACKNOWLEDGE, UNCLEAR
-```
-
-Sample code that implements the flow:
-
-GoLang version:
-
-```go
-pfunc GetQueryTransformFlow(ctx context.Context, model ai.Model, prompt string) (*genkit.Flow[*QueryTransformFlowInput, *QueryTransformFlowOutput, struct{}], error) {
-
- queryTransformPrompt, err := dotprompt.Define("queryTransformFlow",
-  prompt,
-
-  dotprompt.Config{
-   Model:        model,
-   InputSchema:  jsonschema.Reflect(QueryTransformFlowInput{}),
-   OutputSchema: jsonschema.Reflect(QueryTransformFlowOutput{}),
-   OutputFormat: ai.OutputFormatJSON,
-   GenerationConfig: &ai.GenerationCommonConfig{
-    Temperature: 0.5,
-   },
-  },
- )
- if err != nil {
-  return nil, err
- }
- // Define a simple flow that prompts an LLM to generate menu suggestions.
- queryTransformFlow := genkit.DefineFlow("queryTransformFlow", func(ctx context.Context, input *QueryTransformFlowInput) (*QueryTransformFlowOutput, error) {
-  // Default output
-  queryTransformFlowOutput := &QueryTransformFlowOutput{
-   TransformedQuery: "",
-   Intent: types.USERINTENT(types.UNCLEAR),
-  }
-
-    // Generate model output
-  resp, err := queryTransformPrompt.Generate(ctx,
-   &dotprompt.PromptRequest{
-    Variables: input,
-   },
-   nil,
-  )
-  if err != nil {
-    return nil, err
-  }
-
-    // Transform the model's output into the required format.
-  t := resp.Text()
-  err = json.Unmarshal([]byte(t), &queryTransformFlowOutput)
-  if err != nil {
-   return nil, err
-  }
-
-  return queryTransformFlowOutput, nil
- })
- return queryTransformFlow, nil
-}
-```
-
-TypeScript version:
-
-```ts
-export const QueryTransformPrompt = defineDotprompt(
-    {
-      name: 'queryTransformFlow',
-      model: gemini15Flash,
-      input: {
-        schema: QueryTransformFlowInputSchema,
-      },
-      output: {
-        format: 'json',
-        schema: QueryTransformFlowOutputSchema,
-      },  
-    }, 
-   QueryTransformPromptText
-)
-  export const QueryTransformFlow = defineFlow(
-    {
-      name: 'queryTransformFlow',
-      inputSchema: QueryTransformFlowInputSchema,
-      outputSchema: QueryTransformFlowOutputSchema
-    },
-    async (input) => {
-      try {
-        const response = await QueryTransformPrompt.generate({ input: input });
-        console.log(response.output(0))
-        return response.output(0);
-      } catch (error) {
-        console.error("Error generating response:", error);
-        return { 
-          transformedQuery: "",
-          userIntent: 'UNCLEAR',
-          justification: ""
-         }; 
-      }
-    }
-  );
-```
-
-## Challenge 4: Update the retriever to fetch documents based on a query
-
-Sample code that implements the retriever:
-
-```go
-func DefineRetriever(maxRetLength int, db *sql.DB, embedder ai.Embedder) ai.Retriever {
- f := func(ctx context.Context, req *ai.RetrieverRequest) (*ai.RetrieverResponse, error) {
-
-    // Get the embedding for the query
-  eres, err := ai.Embed(ctx, embedder, ai.WithEmbedDocs(req.Document))
-  if err != nil {
-   return nil, err
-  }
-   // Query the db for the relevant rows. 
-  rows, err := db.QueryContext(ctx, `
-     SELECT title, poster, content, released, runtime_mins, rating, plot, actors, director, genres
-     FROM movies
-     ORDER BY embedding <-> $1
-     LIMIT $2`,
-   pgv.NewVector(eres.Embeddings[0].Embedding), maxRetLength)
-  if err != nil {
-   return nil, err
-  }
-  defer rows.Close()
-
-  retrieverResponse := &ai.RetrieverResponse{}
-  for rows.Next() {
-   var title, poster, content, plot, director, actors, genres string
-   var released, runtime_mins int
-   var rating float32
-   if err := rows.Scan(&title, &poster, &content, &released, &runtime_mins, &rating, &plot, &actors, &director, &genres); err != nil {
-    return nil, err
-   }
-   meta := map[string]any{
-    "title":        title,
-    "poster":       poster,
-    "released":     released,
-    "rating":       rating,
-    "runtime_mins": runtime_mins,
-    "plot":         plot,
-    "actors":   actors.split(","),
-    "director":  director,
-    "genres":       genres.split(",")
-   }
-   doc := &ai.Document{
-    Content:  []*ai.Part{ai.NewTextPart(content)},
-    Metadata: meta,
-   }
-   retrieverResponse.Documents = append(retrieverResponse.Documents, doc)
-  }
-  if err := rows.Err(); err != nil {
-   return nil, err
-  }
-  return retrieverResponse, nil
- }
- return ai.DefineRetriever("pgvector", "movieRetriever", f)
-}
-```
-
-```ts
-const sqlRetriever = defineRetriever(
-  {
-    name: 'movies',
-    configSchema: RetrieverOptionsSchema,
-  },
-  async (query, options) => {
-    const db = await openDB();
-    if (!db) {
-      throw new Error('Database connection failed');
-    }
-    const embedding = await embed({
-      embedder: textEmbedding004,
-      content: query,
-    });
-    const results = await db`
-      SELECT title, poster, content, released, runtime_mins, rating, genres, director, actors, plot
-     FROM movies
-        ORDER BY embedding <#> ${toSql(embedding)}
-        LIMIT ${options.k ?? 10}
-      `;
-    return {
-      documents: results.map((row) => {
-        const { content, ...metadata } = row;
-        return Document.fromText(content, metadata);
-      }),
-    };
-  }
-);
-
-```
+- You need to make sure they verify their assumptions by testing out these queries in the **Flows/VectorSearchFlow** in the genkit UI. This flow invokes a retriever that searches for the data in the db specifically from the **embedding** column.
+- They should see that results for searches that use non-semantic type queries will be inaccurate. 
 
 ## Challenge 5: Put all the components from the previous stages together a meaningful response to the user (RAG flow)
 
@@ -668,7 +229,7 @@ Movie:
 - actors:{{this.actors}} 
 - directors:{{this.directors}} 
 - rating:{{this.rating}} 
-- runtimeMinutes:{{this.runtimeMinutes}}
+- runtimeMinutes:{{this.runtime_minutes}}
 - released:{{this.released}} 
 {{/each}}
 
