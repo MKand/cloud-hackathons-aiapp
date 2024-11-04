@@ -398,10 +398,10 @@ By carefully categorizing these fields, you'll create a movie search system that
 
 ### Success Criteria
 
-- Verify your understanding of semantic search by testing different queries on a flow that performs a vector search.
+- Verify your understanding of semantic search by testing different queries that are suitable for a vector search.
 - You have correctly identified fields that likely used in semantic searches and those that will likely be used for keyword searches.
 
-## Challenge 4: Reconstruct the embeddings
+## Challenge 5: Reconstruct the embeddings
 
 ### Introduction
 
@@ -411,62 +411,18 @@ In the next steps, we'll work with a process that takes raw movie data, generate
 
 ### Description
 
-- **Navigate to the Indexer Flow**: Go to **js/indexer/src/indexerFlow.ts**. This file contains the flow that processes the raw data from **dataset/movies_with_posters.csv**, creates embeddings for each movie, and uploads the embeddings and metadata into the PostgreSQL database.
-
-- **Review** the **createTextForEmbedding** Function: The **createTextForEmbedding** function converts raw movie data into a structured  object. It then takes the object and converts it into a string. A vector embedding is generated from the content of this string.
-
-    ```ts
-    function createTextForEmbedding(movie: MovieContext): string {
-        // Construct object from movie fields
-        const dataDict = {
-            title: movie.title,
-            runtime_mins: movie.runtime_mins,
-            genres: movie.genres.length > 0 ? movie.genres.join(', ') : '',
-            rating: movie.rating > 0 ? movie.rating.toFixed(1) : '',
-            released: movie.released > 0 ? movie.released : '',
-            actors: movie.actors.length > 0 ? movie.actors.join(', ') : '',
-            director: movie.director !== '' ? movie.director : '',
-            plot: movie.plot !== '' ? movie.plot : '',
-            tconst: movie.tconst,
-            poster: movie.poster
-        };
-        // Convert object to string
-        return JSON.stringify(dataDict);
-    }
-    ```
-
-- **Review** how embeddings are created: After creating the string, the next step is generating an embedding using the textEmbedding004 model.
-
-    ```ts
-    //Create string for embedding
-    const embeddedContent = createTextForEmbedding(doc);
-
-    // Create embedding
-    const embedding = await embed({
-        embedder: textEmbedding004,
-        content: embeddedContent,
-    });
-    ```
-
-- **Review** how data is inserted into the database: The embeddings and associated metadata are uploaded to the PostgreSQL database using an SQL insert statement.
-
-    ```ts
-    await db`
-        INSERT INTO movies (content, embedding, title, runtime_mins, genres, rating, released, actors, director, plot, poster, tconst)
-        VALUES (${toSql(embedding)}, ${doc.title}, ${doc.runtimeMinutes}, ${doc.genres}, ${doc.rating}, ${doc.released}, ${doc.actors}, ${doc.director}, ${doc.plot}, ${doc.poster}, ${doc.tconst}, ${embeddedContent})
-        ON CONFLICT (tconst) DO UPDATE
-        SET embedding = EXCLUDED.embedding
-    `;
-    ```
-
+- **Navigate to the Indexer Flow**: Go to **js/indexer/src/indexerFlow.ts**. Describe what it does.
+- Review the **createTextForEmbedding** Function: Describe what it does.
+- Review how embeddings are created.
+- Review how data is inserted into the database.
 - Optimize the Embedding Content: Revisit the **createTextForEmbedding** function. Currently, it includes all metadata fields. Since only fields like title, plot, and genres are useful for semantic search, remove the other fields (e.g., rating, released, poster, tconst) to optimize the embedding process.
 - After making changes, **save** the file.
 - Now we'll rebuild and reupload the data:
 
-```sh
-export PROJECT_ID=your_project_id
-docker compose -f docker-compose-indexer.yaml up --build
-```
+    ```sh
+    export PROJECT_ID=your_project_id
+    docker compose -f docker-compose-indexer.yaml up --build
+    ```
 
 - The process may take around 30 seconds to start. It will upload each movie one by one and print the movie titles as they are uploaded. The successful process should look like this:
 
@@ -485,17 +441,15 @@ docker compose -f docker-compose-indexer.yaml up --build
 
 1. Decreased Accuracy for Metadata-Based Queries: Queries that rely on specific metadata, such as "movies with actor David Brown" or "movies released after 2004," should perform less effectively than before, as these fields are no longer used in the embedding process. This confirms that the focus has shifted to improving semantic search over metadata-based queries.
 
-## Challenge 5: Keyword based searches
+## Challenge 6: Keyword based searches
 
 ### Introduction
 
-You've seen that users often search for movie information based on either semantic content or specific text matches. To help them find the right information, the Movie Guru app needs to dynamically choose the best search method.
-
-The goal of this challenge is to build a flow that takes a short user query, determines whether a **Keyword**-based search or a **Vector**-based search is more appropriate, and then returns a **rewritten query** that will be passed to the retriever.
+The Movie Guru app should help users find movie information through either keyword-based or vector-based search. This challenge focuses on building a flow that analyzes a short user query, determines the best search method (vector or keyword), and rewrites the query for optimal retrieval. The flow will invoke a dotPrompt to classify the query type and forward it to the retriever with the appropriate parameters, returning relevant documents.
 
 Example Scenarios:
 
-- For a query like "movies that are shorter than 30 mins," the system should recognize this as a structured/keyword based query and return:
+- For a query like "movies that are shorter than 30 mins," the model should recognize this as a structured/keyword based query and return:
 
     ```json
     {
@@ -504,7 +458,7 @@ Example Scenarios:
     }
     ```
 
-- For a query like "movies with dogs," the system should recognize the need for semantic search and return:
+- For a model like "movies with dogs," the system should recognize the need for semantic search and return:
 
     ```json
     {
@@ -513,25 +467,25 @@ Example Scenarios:
     }
     ```
 
-Once the query type is identified, the retriever performs either a standard SQL query or a vector-based search, depending on the value of searchCategory.
+Once the query type is identified, the retriever performs either a standard SQL query or a vector-based search, depending on the value of searchCategory. 
+
+We'll only be working with the prompt portion of the flow in this challenge.
 
 ### Description
 
-Your goal is to write a prompt for the **MixedSearchFlow** (**js/flows-js/src/mixedSearchFlow.ts**) that performs the following tasks:
+- Your goal is to write a prompt for the **MixedSearchFlow** (**js/flows-js/src/mixedSearchFlow.ts**) that performs the following tasks:
 
-- Analyze the user query.
+  - Analyze the user query.
+  - Classify the search as either a **KEYWORD** search or a **VECTOR** search.
+  - Generate the `outputQuery`: Either an SQL subquery (e.g., WHERE *XYZ*) for keyword-based searches or a short text query for vector-based searches.
 
-- Classify the search as either a **KEYWORD** search or a **VECTOR** search.
+- Once your prompt is written and added to MixedSearchFlowPrompt, follow these steps:
 
-- Generate the `outputQuery`: Either an SQL subquery (e.g., WHERE *XYZ*) for keyword-based searches or a short text query for vector-based searches.
-
-Once your prompt is written and added to MixedSearchFlowPrompt, follow these steps:
-
-- View flow traces for a search in the Genkit UI: Submit a query to the MixedSearchFlow and check the traces in the Inspect tab or by clicking on View Trace.
+  - View flow traces for a search in the Genkit UI: Submit a query to the MixedSearchFlow and check the traces in the Inspect tab or by clicking on View Trace.
 
     ![View Trace](images/MixedSearchFlow-js.png)
 
->**Note**: The trace view in Genkit Developer UI helps visualize the execution flow of your Genkit applications, including each step and the data exchanged between them—essential for debugging and optimizing your AI flows.
+- What does the retriever (**MixedRetriever**) in this flow do (look in **js/flows-js/src/mixedSearchFlow.ts**) ?
 
 ### Success Criteria
 
@@ -545,6 +499,7 @@ Perform the following searches in the MixedSearchFlow:
 
     ![Keyword Search](images/keywordSearch.png)
 
+- How does the retirver handle both keyword based and vector based searches?
 
 ## Challenge 6: The full RAG flow
 
