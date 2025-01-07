@@ -131,8 +131,8 @@ Step 5:
 - Inside the container, run
 
     ```sh
-    npm install -force
-    genkit start
+    npm install
+    npx genkit start -- npm run dev
     ```
 
 - You should see something like this in your terminal
