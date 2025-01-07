@@ -427,7 +427,7 @@ In the next steps, we'll work with a process that takes raw movie data, generate
     docker compose -f docker-compose-indexer.yaml up --build
     ```
 
-- The process may take around 30 seconds to start. It will upload each movie one by one and print the movie titles as they are uploaded. The successful process should look like this:
+- The process may take around 10 minutes to finish.  It will upload each movie one by one and print the movie titles as they are uploaded. The successful process should look like this:
 
     ![Successful indexer](images/indexer-js.png)
 
@@ -448,7 +448,7 @@ In the next steps, we'll work with a process that takes raw movie data, generate
 
 ### Introduction
 
-The Movie Guru app should help users find movie information through either **keyword**-based or **vector**-based search. This challenge focuses on building a flow that analyzes a short user query, determines the best search method (vector or keyword), and rewrites the query for optimal retrieval. The flow will need to invoke a dotPrompt to classify the query type. The flow with then forward it to the retriever with the appropriate parameters, returning relevant documents.
+The Movie Guru app should help users find movie information through either **keyword**-based, **vector**-based search or a **mixed** search where the user's query contains both components that are keyword based and semantic (example: scary movies that were released after 2005). This challenge focuses on building a flow that analyzes a short user query, determines the best search method (vector, keyword, or mixed), and rewrites the query for optimal retrieval. The flow will need to invoke a dotPrompt to classify the query type. The flow with then forward it to the retriever with the appropriate parameters, returning relevant documents.
 
 Example Scenarios:
 
@@ -456,39 +456,49 @@ Example Scenarios:
 
     ```json
     {
-    "outputQuery": "runtime_mins < 30",
+    "keywordQuery": "runtime_mins < 30",
+    "vectorQuery":""
     "searchCategory": "KEYWORD"
     }
     ```
 
-- For a model like "movies with dogs," the system should recognize the need for semantic search and return:
+- For a query like "movies with dogs," the system should recognize the need for semantic search and return:
 
     ```json
     {
-    "outputQuery": "movies with dogs",
+    "keywordQuery":"",
+    "vectorQuery": "movies with dogs",
     "searchCategory": "VECTOR"
     }
     ```
+- For a query like "movies with dogs that are shorter than 90 minutes," the system should recognize the need for semantic search and return:
 
-Once the query type is identified, the retriever performs either a standard SQL query or a vector-based search, depending on the value of searchCategory. 
+    ```json
+    {
+    "keywordQuery":"runtime_mins < 90",
+    "vectorQuery": "movies with dogs",
+    "searchCategory": "MIXED"
+    }
+    ```
+Once the query type is identified, the retriever performs either a standard SQL query or a vector-based search or both, depending on the value of searchCategory. 
 
 We'll only be working with the prompt portion of the flow in this challenge.
 
 ### Description
 
-- Your goal is to write a prompt for the **MixedSearchFlow** (**js/flows-js/src/mixedSearchFlow.ts**) that performs the following tasks:
+- Your goal is to write a prompt for the **MovieDocFlow** (**js/flows/src/movieDocFlow.ts**) that performs the following tasks:
 
   - Analyze the user query.
-  - Classify the search as either a **KEYWORD** search or a **VECTOR** search.
-  - Generate the `outputQuery`: Either an SQL subquery (e.g., WHERE *XYZ*) for keyword-based searches or a short text query for vector-based searches.
+  - Classify the search as a **KEYWORD** search or a **VECTOR** search, or a **MIXED** search.
+  - Generate the `keywordQuery` and `vectorQuery`: Either an SQL subquery (e.g., WHERE *XYZ*) for keyword-based searches or a short text query for vector-based searches.
 
-- Once your prompt is written and added to MixedSearchFlowPrompt, follow these steps:
+- Once your prompt is written and added to MixedSearchFlowPrompt (**js/flows/src/prompts.ts**), follow these steps:
 
-  - View flow traces for a search in the Genkit UI: Submit a query to the MixedSearchFlow and check the traces in the Inspect tab or by clicking on View Trace.
+  - View flow traces for a search in the Genkit UI: Submit a query to the MovieDocFlow and check the traces in the Inspect tab or by clicking on View Trace.
 
     ![View Trace](images/MixedSearchFlow-js.png)
 
-- What does the retriever (**MixedRetriever**) in this flow do (look in **js/flows-js/src/mixedSearchFlow.ts**) ?
+- What does the retriever (**movies**) in this flow do (look in **js/flows-js/src/movieDocFlow.ts**) ?
 
 ### Success Criteria
 
