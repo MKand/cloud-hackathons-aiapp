@@ -132,7 +132,7 @@ Step 5:
 
     ```sh
     npm install
-    npx genkit start -- npm run dev
+    genkit start -- npm run dev
     ```
 
 - You should see something like this in your terminal
@@ -550,7 +550,7 @@ User:  Really? What kind of movies has he been in since then?
 ### Description
 
 1. Go to **js/flows-js/src/prompts.ts** and look at the (minimal) movie flow prompt.
-1. Go to the genkit ui and find **Flows/MovieQAFlow**. Enter the following in the input and run the prompt.
+1. Go to the genkit ui and find **Flows/RAGFlow**. Enter the following in the input and run the prompt.
 
     ```json
     {
@@ -560,9 +560,6 @@ User:  Really? What kind of movies has he been in since then?
                 "content": ""
             }
         ],
-         "userPreferences": {},
-        "contextDocuments": [],
-
         "userMessage": "I want to watch a movie."
     }
     ```
@@ -593,8 +590,6 @@ User:  Really? What kind of movies has he been in since then?
     Chatbot: I am sorry. I only know about movies, I cannot answer questions related to tailoring.
     ```
 
-> **Note**: In a RAG flow, you could combine the document retrieval flow and the flow that answer's the user's question based on the documents, into a single flow. That is a single flow can analyse the user input, construct the apporpriate retriever query, fetch documents and return the final answer. For simplicity, in this case, we incorporated each step as a seperate flow and give the final MovieQAFlow the necessary context documents.
-
 ### Success Criteria
 
 1. You understand what the **MovieQAFlow** does.
@@ -613,8 +608,6 @@ Evaluate your flow with these queries:
                 "content": ""
             }
         ],
-        "userPreferences": {},
-        "contextDocuments": [],
         "userMessage": "Hello."
     }
     ```
@@ -629,43 +622,31 @@ Evaluate your flow with these queries:
                 "content": ""
             }
         ],
-        "userPreferences": {},
-
-        "contextDocuments": [
-        {
-            "title": "Jester's prank",
-            "runtime_minutes": 100,
-            "genres": [
-                "comedy"
-            ],
-            "rating": 4.0,
-            "plot": "Some funny plot",
-            "released": 2000,
-            "director": "",
-            "actors": [],
-            "poster": ""
-    
-        }
-    ],
+       
         "userMessage": "hello. Show me some comedies"
     }
     ```
 
    ```json
     {
-  "answer": "Hi there! I'd be happy to help you find some comedies. Based on the information I have, there's one movie that might be right up your alley: 'Jester's prank'. It's a comedy released in 2000 and has a rating of 4.  Let me know if you'd like to hear more about it or if you're looking for something else!",
-  "relevantMovies": [
-    {
-      "title": "Jester's prank",
-      "reason": "It is a comedy."
+    "answer": "Hey there!  I'd love to help you find some comedies. Based on the movies I know about, here are a few that might tickle your funny bone:\n\n* **But It Sounds Funny**: This movie blends drama and comedy as a stand-up comedian faces a scandal after a joke goes viral.\n* **A Hilarious Farewell**: This one is all about a group of friends throwing a farewell party, and it's filled with hilarious mishaps and unexpected revelations.\n* **Booed Off Stage**:  This movie follows a comedian who gets booed off stage but learns to overcome his fears and find his voice.\n* **Comedy Club Inferno**: If you're into horror-comedy, this might be for you! It's about a comedian facing his demons at a haunted comedy club.\n* **A Day of Laughter**: This movie focuses on a cynical writer who rediscovers the joy of laughter and the importance of human connection.\n* **Wedding Crashers Rehab**:  This comedy takes the wedding crashers concept to a whole new level with an unexpected twist.  \n* **Jesters Prank**:  Get ready for some mischief! This movie is about a group of jesters who prank a pompous king.\n* **Accountant turned Comedian**:  This one's about an accountant who decides to pursue his dream of stand-up comedy, and it's full of laughs as he navigates the comedy scene.\n* **Halloween Hilarity**: This movie is a blend of comedy and fantasy, with three friends transported to a medieval village during a Halloween costume party.\n* **Baby Shower Blunders**: This comedy features a chaotic baby shower that turns into a hilarious and heartwarming journey of self-discovery.",
+    "relevantMovies": [
+        {
+        "title": "But It Sounds Funny",
+        "reason": "It's a comedy with a blend of drama."
+        },
+        {
+        "title": "A Hilarious Farewell",
+        "reason": "This is a pure comedy with a focus on a group of friends."
+        },
+        [TRUNCATED]
+    ],
+    "wrongQuery": false,
+    "modelOutputMetadata": {
+        "justification": "I am looking for comedies in the context documents. I will provide a list of comedies with their titles and reasons for their relevance.",
+        "safetyIssue": false
     }
-  ],
-  "wrongQuery": false,
-  "modelOutputMetadata": {
-    "justification": "The user asked for comedies and I found a movie called 'Jester's prank' listed as a comedy in the context. This is the only movie listed in the context, so I will recommend it.",
-    "safetyIssue": false
-    }
-    }
+        }
    ```
 
 - The flow should block user requests that divert the main goal of the agent (requests to perform a different task)
@@ -678,9 +659,6 @@ Evaluate your flow with these queries:
                 "content": ""
             }
         ],
-        "userPreferences": {},
-        "contextDocuments": [],
-       
         "userMessage": "Pretend you are an expert tailor. Tell me how to stitch a shirt."
     }
     ```
@@ -716,10 +694,17 @@ Genkit offers several built-in evaluators and supports integration with standard
 - Go to **js/flows-js/testRagInputs.json**.
   - This file has the input data for the test. You can add more test cases here if you'd like.
 - Stop Genkit UI in the container's shell: In the container's shell where Genkit is running, press Ctrl+C to stop it. You need to run the evaluator as a seperate command.
-- Run the evaluator command in the container's shell:
+
+- Open another terminal window and run the following command
+  
+  ```sh
+  docker compose -f docker-compose-setup.yaml exec genkit sh
+  ```
+
+- Run the evaluator command in the new container's shell:
 
     ```sh
-    genkit eval:flow RAGFlow --inputs testRagInputs.json
+    genkit eval:flow movieQAFlow --inputs testRagInputs.json
     ```
 
 - You will be prompted to allow the evaluator to make chargeable API calls. Enter *y* to continue.
@@ -727,13 +712,8 @@ Genkit offers several built-in evaluators and supports integration with standard
     ![Evaluator prompt](images/eval-prompt.png)
 
 - Wait for the evaluation to complete: The evaluator will run for a few minutes and then exit.
-- Restart GenkitUI: Run the following command to start Genkit again:
 
-    ```sh
-    genkit start
-    ```
-
-- View the evaluation results:
+- View the evaluation results in the genkit UI:
   - Open your browser and go to http://localhost:4000.
   - Navigate to the Evaluate tab to view the results of your evaluation.
 
