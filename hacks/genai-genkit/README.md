@@ -151,29 +151,16 @@ Step 5:
 **Please be patient**.
 
 ```sh
-> flow@1.0.0 build
-> tsc
-Starting app at `lib/index.js`...
-Genkit Tools API: http://localhost:4000/api
-Registering plugin vertexai...
-[TRUNCATED]
-Registering retriever: movies
-Registering flow: movieDocFlow
-Starting flows server on port 3400
-    - /userProfileFlow
-    - /queryTransformFlow
-    - /movieQAFlow
-    - /movieDocFlow
-Reflection API running on http://localhost:3100
-Flows server listening on port 3400
-Initializing plugin vertexai:
-[TRUNCATED]
-Registering embedder: vertexai/textembedding-gecko@001
-Registering embedder: vertexai/text-embedding-004
-Registering embedder: vertexai/textembedding-gecko-multilingual@001
-Registering embedder: vertexai/text-multilingual-embedding-002
-Initialized local file trace store at root: /tmp/.genkit/8931f61ceb1c88e84379f345e686136a/traces
-Genkit Tools UI: http://localhost:4000
+Genkit CLI and Developer UI use cookies and similar technologies from Google
+to deliver and enhance the quality of its services and to analyze usage.
+Learn more at https://policies.google.com/technologies/cookies
+Press "Enter" to continue
+[Telemetry Server] initialized local file trace store at root: /app/.genkit/traces
+Telemetry API running on http://localhost:4033
+Genkit Developer UI: http://localhost:4000
+
+> flow@1.0.0 dev
+> tsc && node lib/index.js
 ```
 
 - Once up and running, navigate to **<http://localhost:4000>** in your browser. This will open up the **Genkit UI**. It will look something like this:
@@ -233,7 +220,7 @@ Here, we're going explore the prompt structure, and test out the output of the m
   - **Explore the dotPrompt**:
   
     - What does this prompt instruct the model to do?
-    - What parts of the dotPrompt can you only edit in the code (`js/flows-js/src/userProfileFlow.ts`)?
+    - What parts of the dotPrompt can you only edit in the code (`js/flows/src/userProfileFlow.ts`)?
     - What are the input and output types for this prompt?
     - What are the fields in each type?
     - What are some potential challenges the model might face in interpreting diverse user input?
@@ -304,7 +291,7 @@ We're going to take a look at the data that powers the movie guru app.
         runtime_mins,
         embedding
     FROM 
-    'movies'
+    movies
     ```
 
 - You should see a long list of data in the database.
@@ -385,13 +372,29 @@ Runtime
 
 1. Identify any fields that users are unlikely to search by directly. Make a list of those fields.
 
-1. Open the **Genkit Developer UI** and go to **Flows/VectorSearchFlow**. This flow allows you to test vector searches in the movie database.
+1. Open the **Genkit Developer UI** and go to **Retrievers/movies**. This flow allows you to test searches in the movie database.
 
 1. Test out a few semantic searches.
-   - Enter the query "films with animals".
+   - Enter the query "films with animals" under Options Input (Json).
+   ```json
+   {
+    "k": 10,
+    "searchCategory": "VECTOR",
+    "keywordQuery": "",
+    "vectorQuery": "films with animals"
+   }
+   ```
    - Make sure each movie returned actually features animals. Read the plot summaries to confirm this.
 
-1. Test out a few keyword based searches.
+1. Test out a few keyword based searches (for example)
+   ```json
+   {
+    "k": 10,
+    "searchCategory": "VECTOR",
+    "keywordQuery": "",
+    "vectorQuery": "movies released in 2004"
+   }
+   ```
    - Observe the results.
 
 By carefully categorizing these fields, you'll create a movie search system that's both efficient and capable of understanding a variety of user requests.
@@ -412,10 +415,10 @@ In the next steps, we'll work with a process that takes raw movie data, generate
 ### Description
 
 - **Navigate to the Indexer Flow**: Go to **js/indexer/src/indexerFlow.ts**. Describe what it does.
-- Review the **createTextForEmbedding** Function: Describe what it does.
+- Review the **createText** Function: Describe what it does.
 - Review how embeddings are created.
 - Review how data is inserted into the database.
-- Optimize the Embedding Content: Revisit the **createTextForEmbedding** function. Currently, it includes all metadata fields. Since only fields like title, plot, and genres are useful for semantic search, remove the other fields (e.g., rating, released, poster, tconst) to optimize the embedding process.
+- Optimize the Embedding Content: Revisit the **createText** function. Currently, it includes all metadata fields. Since only fields like title, plot, and genres are useful for semantic search, remove the other fields (e.g., rating, released, poster, tconst) to optimize the embedding process.
 - After making changes, **save** the file.
 - Now we'll rebuild and reupload the data:
 
