@@ -153,7 +153,7 @@ In this challenge students need to look through the fields in the movies db and 
 - Unsearched fields: Tconst, poster
 
 - You need to make sure they verify their assumptions by testing out these queries in the **Retrievers/Movies** in the genkit UI. This flow invokes a retriever that searches for the data in the db. The input specifies whether to use a Keyword based, vector based or a mixed searcgh.
-- They should see that results for searches that use non-semantic (keyword) type queries will be inaccurate.
+- They should see that results for vector searches for fields that are not suited for semantic searches will be inaccurate.
 
 ## Challenge 5: Reconstruct the embeddings
 
