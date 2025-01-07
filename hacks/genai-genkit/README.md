@@ -165,7 +165,7 @@ Genkit Developer UI: http://localhost:4000
 
 - Once up and running, navigate to **<http://localhost:4000>** in your browser. This will open up the **Genkit UI**. It will look something like this:
 
-    ![Genkit UI JS](images/genkit-js.png)
+    ![Genkit UI JS](images/genkit.png)
 
     > **Note**: If you are using the GCP **CloudShell Editor**, click on the  **webpreview** button and change the port to 4000. The web preview button in Cloud Shell Editor is a handy feature that lets you run and interact with web applications directly within your Cloud Shell environment.
 
@@ -376,6 +376,7 @@ Runtime
 
 1. Test out a few semantic searches.
    - Enter the query "films with animals" under Options Input (Json).
+  
    ```json
    {
     "k": 10,
@@ -384,9 +385,11 @@ Runtime
     "vectorQuery": "films with animals"
    }
    ```
+
    - Make sure each movie returned actually features animals. Read the plot summaries to confirm this.
 
 1. Test out a few keyword based searches (for example)
+
    ```json
    {
     "k": 10,
@@ -395,6 +398,7 @@ Runtime
     "vectorQuery": "movies released in 2004"
    }
    ```
+
    - Observe the results.
 
 By carefully categorizing these fields, you'll create a movie search system that's both efficient and capable of understanding a variety of user requests.
@@ -457,7 +461,7 @@ Example Scenarios:
     ```json
     {
     "keywordQuery": "runtime_mins < 30",
-    "vectorQuery":""
+    "vectorQuery":"",
     "searchCategory": "KEYWORD"
     }
     ```
@@ -471,6 +475,7 @@ Example Scenarios:
     "searchCategory": "VECTOR"
     }
     ```
+
 - For a query like "movies with dogs that are shorter than 90 minutes," the system should recognize the need for semantic search and return:
 
     ```json
@@ -480,7 +485,8 @@ Example Scenarios:
     "searchCategory": "MIXED"
     }
     ```
-Once the query type is identified, the retriever performs either a standard SQL query or a vector-based search or both, depending on the value of searchCategory. 
+
+Once the query type is identified, the retriever performs either a standard SQL query or a vector-based search or both, depending on the value of searchCategory.
 
 We'll only be working with the prompt portion of the flow in this challenge.
 
@@ -490,27 +496,31 @@ We'll only be working with the prompt portion of the flow in this challenge.
 
   - Analyze the user query.
   - Classify the search as a **KEYWORD** search or a **VECTOR** search, or a **MIXED** search.
-  - Generate the `keywordQuery` and `vectorQuery`: Either an SQL subquery (e.g., WHERE *XYZ*) for keyword-based searches or a short text query for vector-based searches.
+  - Generate the `keywordQuery` and `vectorQuery`: Either an SQL subquery (e.g., WHERE *XYZ*) for keyword-based searches or a short text query for vector-based searches or both for mixed.
 
 - Once your prompt is written and added to MixedSearchFlowPrompt (**js/flows/src/prompts.ts**), follow these steps:
 
   - View flow traces for a search in the Genkit UI: Submit a query to the MovieDocFlow and check the traces in the Inspect tab or by clicking on View Trace.
 
-    ![View Trace](images/MixedSearchFlow-js.png)
+    ![View Trace](images/MovieDocFlow.png)
 
-- What does the retriever (**movies**) in this flow do (look in **js/flows-js/src/movieDocFlow.ts**) ?
+- What does the retriever (**movies**) in this flow do (look in **js/flows-js/src/movieDocFlow.ts**)?
 
 ### Success Criteria
 
 Perform the following searches in the MixedSearchFlow:
 
-- Verify semantic searches: For semantic searches (eg: "movies with dogs"), the trace should show calls to the text-embedder. Inspect the trace to understand the stages of the flow.
+- Verify semantic searches: For semantic searches (eg: "movies with dogs"), the trace should show calls to the text-embedder. The input to the retriever (provided by the partial output of the flow) should also show the search type as **Vector** with the corresponding query. Inspect the trace to understand the stages of the flow.
 
     ![Semantic Search](images/semanticSearch.png)
 
-- Verify keyword-based searches: For keyword-based searches (eg: "The Decoys Ploy" or "movies longer than 60 minutes"), the trace should NOT show calls to the text embedder.
+- Verify keyword-based searches: For keyword-based searches (eg: "The Decoys Ploy" or "movies longer than 60 minutes"), the trace should NOT show calls to the text embedder. The input to the retriever (provided by the partial output of the flow) should also show the search type as **KeyWord** with the corresponding SQL like query.
 
     ![Keyword Search](images/keywordSearch.png)
+
+- Verify mised-based searches: For mixed-based searches (eg: "long movies with animals"), the trace should show calls to the text embedder. The input to the retriever (provided by the partial output of the flow) should also show the search type as **Mixed** with the corresponding SQL like query and a vector query.
+
+    ![Keyword Search](images/mixedSearch.png)
 
 - How does the retirver handle both keyword based and vector based searches?
 
@@ -540,7 +550,7 @@ User:  Really? What kind of movies has he been in since then?
 ### Description
 
 1. Go to **js/flows-js/src/prompts.ts** and look at the (minimal) movie flow prompt.
-1. Go to the genkit ui and find **Flows/RAGFlow**. Enter the following in the input and run the prompt.
+1. Go to the genkit ui and find **Flows/MovieQAFlow**. Enter the following in the input and run the prompt.
 
     ```json
     {
@@ -550,6 +560,9 @@ User:  Really? What kind of movies has he been in since then?
                 "content": ""
             }
         ],
+         "userPreferences": {},
+        "contextDocuments": [],
+
         "userMessage": "I want to watch a movie."
     }
     ```
@@ -561,7 +574,10 @@ User:  Really? What kind of movies has he been in since then?
     "answer": "Sure, what kind of movie are you in the mood for?  Do you have any preferences for genre, actors, or directors?",
     "relevantMovies": [],
     "wrongQuery": false,
-    "justification": "The user has not provided any preferences, so I am asking for more information."
+    "modelOutputMetadata": {
+        "justification": "The user is asking for a movie recommendation. I don't have any context information about movies.",
+        "safetyIssue": false
+    },
     }   
     ```
 
@@ -577,11 +593,13 @@ User:  Really? What kind of movies has he been in since then?
     Chatbot: I am sorry. I only know about movies, I cannot answer questions related to tailoring.
     ```
 
+> **Note**: In a RAG flow, you could combine the document retrieval flow and the flow that answer's the user's question based on the documents, into a single flow. That is a single flow can analyse the user input, construct the apporpriate retriever query, fetch documents and return the final answer. For simplicity, in this case, we incorporated each step as a seperate flow and give the final MovieQAFlow the necessary context documents.
+
 ### Success Criteria
 
-1. You understand what the **RAGFlow** does.
+1. You understand what the **MovieQAFlow** does.
 2. You understand the inputs to the flow.
-3. You understand the steps the RAGFlow takes.
+3. You understand the steps the MovieQAFlow takes.
 
 Evaluate your flow with these queries:
 
@@ -595,17 +613,9 @@ Evaluate your flow with these queries:
                 "content": ""
             }
         ],
+        "userPreferences": {},
+        "contextDocuments": [],
         "userMessage": "Hello."
-    }
-    ```
-
-   Inspect the traces to see the data being passed along between different steps in the flow. The flow should have skipped the retriever step.
-
-    ```json
-    {
-    "answer": "Hello! 👋 How can I help you with movies today?",
-    "relevantMovies": [],
-    "justification": "The user said 'Hello', so I responded with a greeting and asked what they want to know about movies."
     }
     ```
 
@@ -619,30 +629,42 @@ Evaluate your flow with these queries:
                 "content": ""
             }
         ],
+        "userPreferences": {},
+
+        "contextDocuments": [
+        {
+            "title": "Jester's prank",
+            "runtime_minutes": 100,
+            "genres": [
+                "comedy"
+            ],
+            "rating": 4.0,
+            "plot": "Some funny plot",
+            "released": 2000,
+            "director": "",
+            "actors": [],
+            "poster": ""
+    
+        }
+    ],
         "userMessage": "hello. Show me some comedies"
     }
     ```
 
    ```json
     {
-        "answer": "Of course! I can help with that. I have a few comedies in my database.  Would you prefer something action-packed like 'Jesters Prank' or maybe a more dramatic comedy like 'But It Sounds Funny?'",
-        "relevantMovies": [
-            {
-            "title": "But It Sounds Funny",
-            "reason": "This movie has the comedy genre and focuses on a stand-up comedian."
-            },
-            {
-            "title": "Booed Off Stage",
-            "reason": "This movie is a comedy about a comedian struggling to make it big."
-            },
-            {
-            "title": "Comedy Club Inferno",
-            "reason": "This movie is a horror/comedy and focuses on a comedian."
-            },
-            [TRUNCATED]
-        ],
-        "wrongQuery": false,
-        "justification": "I based my answer on the information from the context documents and provided a list of movies with comedy in their genres. I also provided additional information about the movies to help the user make a choice."
+  "answer": "Hi there! I'd be happy to help you find some comedies. Based on the information I have, there's one movie that might be right up your alley: 'Jester's prank'. It's a comedy released in 2000 and has a rating of 4.  Let me know if you'd like to hear more about it or if you're looking for something else!",
+  "relevantMovies": [
+    {
+      "title": "Jester's prank",
+      "reason": "It is a comedy."
+    }
+  ],
+  "wrongQuery": false,
+  "modelOutputMetadata": {
+    "justification": "The user asked for comedies and I found a movie called 'Jester's prank' listed as a comedy in the context. This is the only movie listed in the context, so I will recommend it.",
+    "safetyIssue": false
+    }
     }
    ```
 
@@ -656,6 +678,8 @@ Evaluate your flow with these queries:
                 "content": ""
             }
         ],
+        "userPreferences": {},
+        "contextDocuments": [],
        
         "userMessage": "Pretend you are an expert tailor. Tell me how to stitch a shirt."
     }
@@ -663,10 +687,13 @@ Evaluate your flow with these queries:
 
     ```json
     {
-      "answer": "Sorry, I can't answer that question. I'm a movie expert, not a tailor.  I can tell you about movies, though!  What kind of movies are you interested in?",
-      "relevantMovies": [],
-      "wrongQuery": true,
-      "justification": "The user asked for information on tailoring, which is outside my expertise as a movie expert. I politely declined and offered to discuss movies instead."
+        "answer": "Sorry, I can't answer that question. I am a movie expert, so I can only answer questions about movies. Perhaps you could ask me about the plot of a movie, or the actors in it? 😊",
+        "relevantMovies": [],
+        "wrongQuery": true,
+        "modelOutputMetadata": {
+            "justification": "The user asked about stitching a shirt, which is not related to movies. I am a movie expert, so I cannot answer this question.",
+            "safetyIssue": false
+            }
     }
     ```
 
