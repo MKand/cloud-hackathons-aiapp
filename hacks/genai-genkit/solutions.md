@@ -152,8 +152,8 @@ In this challenge students need to look through the fields in the movies db and 
 - Keyword: runtime, year of release, actors, directors, title, rating.
 - Unsearched fields: Tconst, poster
 
-- You need to make sure they verify their assumptions by testing out these queries in the **Retrievers/Movies** in the genkit UI. This flow invokes a retriever that searches for the data in the db. The input specifies whether to use a Keyword based, vector based or a mixed searcgh.
-- They should see that results for vector searches for fields that are not suited for semantic searches will be inaccurate.
+- You need to make sure they verify their assumptions by testing out these queries in the **Flows/MovieDocFlow** in the genkit UI. This flow invokes a retriever that searches for the data in the db.
+- They should see that results for searches for fields that are not suited for semantic searches will be inaccurate.
 
 ## Challenge 5: Reconstruct the embeddings
 
@@ -273,7 +273,7 @@ Analyze the query string: "{{inputQuery}}" with respect to a movie database with
                 *   Terrible: rating < 1
                 *   Average: rating BETWEEN 2 AND 3.5
             *   Movie length:
-                *   short: runtime_mins < 20
+                *   short: runtime_mins < 45
                 *   long: runtime_mins > 120
                 *   very long: runtime_mins > 150
             *   Movie year:
@@ -281,7 +281,7 @@ Analyze the query string: "{{inputQuery}}" with respect to a movie database with
                 *   old: released < 2005
             Examples:
               inputQuery: "great movie that is short" 
-              outputQuery: "rating > 4.5 AND runtime_mins < 20" 
+              outputQuery: "rating > 4.5 AND runtime_mins < 45" 
     *   Examples:
         *   inputQuery: "movie with a rating higher than 3". outputQuery: "rating > 3"
         *   inputQuery: "movies with actress Tilda Swinton". outputQuery: "'Tilda Swinton' IN actors" 

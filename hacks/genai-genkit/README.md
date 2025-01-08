@@ -372,36 +372,17 @@ Runtime
 
 1. Identify any fields that users are unlikely to search by directly. Make a list of those fields.
 
-1. Open the **Genkit Developer UI** and go to **Retrievers/movies**. This flow allows you to test searches in the movie database.
+1. Open the **Genkit Developer UI** and go to **Flows/MovieDocFlow**. This flow allows you to test searches in the movie database.
 
 1. Test out a few semantic searches.
-   - Enter the query "films with animals" under Options Input (Json).
-  
-   ```json
-   {
-    "k": 10,
-    "searchCategory": "VECTOR",
-    "keywordQuery": "",
-    "vectorQuery": "films with animals"
-   }
-   ```
-
+   - Enter the query "films with animals".
    - Make sure each movie returned actually features animals. Read the plot summaries to confirm this.
 
-1. Test out a few keyword based searches (for example)
-
-   ```json
-   {
-    "k": 10,
-    "searchCategory": "VECTOR",
-    "keywordQuery": "",
-    "vectorQuery": "movies released in 2004"
-   }
-   ```
-
+1. Test out a few keyword based searches.
    - Observe the results.
 
-By carefully categorizing these fields, you'll create a movie search system that's both efficient and capable of understanding a variety of user requests.
+You'll notice that the flow performs well on queries that are semantic in nature, but not on the rest.
+By carefully categorizing these fields, you'll create a movie search system that's both efficient and capable of understanding a variety of user requests in the next few challenges.
 
 ### Success Criteria
 
@@ -452,7 +433,7 @@ In the next steps, we'll work with a process that takes raw movie data, generate
 
 ### Introduction
 
-The Movie Guru app should help users find movie information through either **keyword**-based, **vector**-based search or a **mixed** search where the user's query contains both components that are keyword based and semantic (example: scary movies that were released after 2005). This challenge focuses on building a flow that analyzes a short user query, determines the best search method (vector, keyword, or mixed), and rewrites the query for optimal retrieval. The flow will need to invoke a dotPrompt to classify the query type. The flow with then forward it to the retriever with the appropriate parameters, returning relevant documents.
+The Movie Guru app should help users find movie information through either **keyword**-based, **vector**-based search or a **mixed** search where the user's query contains both components that are keyword based and semantic (example: scary movies that were released after 2005). This challenge focuses on building a flow that analyzes a user query, determines the best search method (vector, keyword, or mixed), and rewrites the query for optimal retrieval. The flow will need to invoke a dotPrompt to classify the query type. The flow will then forward it to the retriever with the appropriate parameters, returning relevant documents.
 
 Example Scenarios:
 
@@ -492,17 +473,18 @@ We'll only be working with the prompt portion of the flow in this challenge.
 
 ### Description
 
-- Your goal is to write a prompt for the **MovieDocFlow** (**js/flows/src/movieDocFlow.ts**) that performs the following tasks:
+- Your goal is to re-write a prompt for the **MovieDocFlow** (**js/flows/src/movieDocFlow.ts**) that performs the following tasks:
 
   - Analyze the user query.
   - Classify the search as a **KEYWORD** search or a **VECTOR** search, or a **MIXED** search.
-  - Generate the `keywordQuery` and `vectorQuery`: Either an SQL subquery (e.g., WHERE *XYZ*) for keyword-based searches or a short text query for vector-based searches or both for mixed.
+  - Generate the `keywordQuery` and/or a `vectorQuery`: Either an SQL subquery (e.g., WHERE *XYZ*) for keyword-based searches or a short text query for vector-based searches or both for mixed.
 
-- Once your prompt is written and added to MixedSearchFlowPrompt (**js/flows/src/prompts.ts**), follow these steps:
+- Once your prompt is written and added to **DocSearchFlowPromptText** (**js/flows/src/prompts.ts**).
+- Test out the prompt by following these steps:
 
   - View flow traces for a search in the Genkit UI: Submit a query to the MovieDocFlow and check the traces in the Inspect tab or by clicking on View Trace.
 
-    ![View Trace](images/MovieDocFlow.png)
+    ![View Trace](images/MovieDocFlowTrace.png)
 
 - What does the retriever (**movies**) in this flow do (look in **js/flows-js/src/movieDocFlow.ts**)?
 
@@ -514,7 +496,7 @@ Perform the following searches in the MixedSearchFlow:
 
     ![Semantic Search](images/semanticSearch.png)
 
-- Verify keyword-based searches: For keyword-based searches (eg: "The Decoys Ploy" or "movies longer than 60 minutes"), the trace should NOT show calls to the text embedder. The input to the retriever (provided by the partial output of the flow) should also show the search type as **KeyWord** with the corresponding SQL like query.
+- Verify keyword-based searches: For keyword-based searches (eg: "The Decoys Ploy" or "movies longer than 60 minutes"), the trace should NOT show calls to the text embedder. The input to the retriever (provided by the partial output of the flow) should also show the search type as **Keyword** with the corresponding SQL like query.
 
     ![Keyword Search](images/keywordSearch.png)
 
@@ -542,14 +524,14 @@ Chatbot:  Ah, you must be thinking of his role as Edward Cullen.
 
 User:  Yeah, in Twilight! He's just not action hero material.
 
-Chatbot:  While he was known for that role, he's actually taken on a lot of diverse projects since then.  Many critics felt he delivered a brooding and intense performance as Batman.
+Chatbot:  While he was in that role, he's actually taken on a lot of diverse projects since then.
 
 User:  Really? What kind of movies has he been in since then?
 ```
 
 ### Description
 
-1. Go to **js/flows-js/src/prompts.ts** and look at the (minimal) movie flow prompt.
+1. Go to **js/flows-js/src/prompts.ts** and look at the (minimal) **MovieFlowPrompt**.
 1. Go to the genkit ui and find **Flows/RAGFlow**. Enter the following in the input and run the prompt.
 
     ```json
