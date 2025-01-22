@@ -96,16 +96,15 @@ Step 3:
 
 Step 4:
 
-- Go to the project in the GCP console. Go to **IAM > Service Accounts**.
-- Select the service account (movie-guru-chat-server-sa@##########.iam.gserviceaccount.com).
-
-![IAM](images/IAM.png)
-
-- Select **Create a new JSON key**.
-
-![CreateKey](images/createnewkey.png)
-
-- Download the key and store it as **.key.json** in the root of this repo (make sure you use the filename exactly).
+- Let's create a temporary key stored in your current working directory to access gcloud services as the service account `movie-guru-chat-server-sa@##########.iam.gserviceaccount.com`.
+- Run the following command
+  
+  ```sh
+  gcloud iam service-accounts keys create ./.key.json \
+    --iam-account=movie-guru-chat-server-sa@$PROJECT_ID.iam.gserviceaccount.com
+  ```
+  
+  You should see a key named **.key.json** at the root of the project directory.
 
 > **Warning**: In production it is BAD practice to store keys in file. Applications running in GoogleCloud use serviceaccounts attached to the platform to perform authentication. The setup used here is simply for convenience.
 
