@@ -308,7 +308,11 @@ The platform team's dashboards use metrics collected from the **movie-guru backe
      - Based on the metrics and your own experience, describe how users likely perceive the app's performance.  
 1. Note down which aspects of the app need serious improvement.
 1. **Choose Your SLIs:**
+<<<<<<< HEAD
    - SREs need to document carefully the metrics they use to construct their SLIs (referesher on [what are SLIs](#what-are-slis)). 
+=======
+   - SREs need to document carefully the metrics they use to construct their SLIs (referesher on [what are SLIs](#what-are-slis)).
+>>>>>>> refs/remotes/origin/main
    - Your challenge is to first define the SLIs (on paper) by examining the dashboards to identify relevant metrics.
    - Write them down in definition form as illustrated below.
      - Example Availability SLI: The availability of `service abc` is measured by the ratio of successful startups recorded as a ratio of `metric x` to the total attempts in `metric y`.
@@ -428,7 +432,7 @@ $BACKEND_ADDRESS/phase
 
 This challenge is about setting up **Achievable** Service Level Objectives (SLOs) for the app in **Cloud Monitoring Suite**. These are targets you expect to meet in 1-2 months after making a few improvements to the app.
 
-#### Description
+### Description
 
 1. **Create a service in the UI**
     > **Note**: You can also create these via the API. Check [Tips](#tips) in **Learning Resources** for creating services via the API.
